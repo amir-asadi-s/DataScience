@@ -1,0 +1,104 @@
+---
+title: "0_R for Data Science (2e)"
+format: html
+editor: visual
+---
+
+new co-author: Mine Çetinkaya-Rundel, a noted data science educator and one of our colleagues at Posit (the company formerly known as RStudio)
+
+From <https://r4ds.hadley.nz/preface-2e>
+
+"Visualize" :
+
+http://ggplot2-book.org/
+
+https://quarto.org/ Instead of R Markdown
+
+The modeling part has been removed. We never had enough room to fully do modelling justice, and there are now much better resources available. We generally recommend using the tidymodels packages and reading Tidy Modeling with R by Max Kuhn and Julia Silge.
+
+# Introduction
+
+This edition of the book has been written in Quarto, and it's clearly the tool of the future.
+
+Data science is an exciting discipline that allows you to transform raw data into understanding, insight, and knowledge.
+
+Data science is a vast field, and there's no way you can master it all by reading a single book. This book aims to give you a solid foundation in the most important tools and enough knowledge to find the resources to learn more when necessary. Our model of the steps of a typical data science project looks something like Figure 1.
+
+Figure 1.1: In our model of the data science process, you start with data import and tidying. Next, you understand your data with an iterative cycle of transforming, visualizing, and modeling. You finish the process by communicating your results to other humans.
+
+First, you must import your data into R.
+
+Tidying your data means storing it in a consistent form that matches the semantics of the dataset with how it is stored. In brief, when your data is tidy, each column is a variable and each row is an observation. Tidy data is important because the consistent structure lets you focus your efforts on answering questions about the data, not fighting to get the data into the right form for different functions.
+
+Transformation includes narrowing in on observations of interest (like all people in one city or all data from the last year), creating new variables that are functions of existing variables (like computing speed from distance and time), and calculating a set of summary statistics (like counts or means). Together, tidying and transforming are called wrangling because getting your data in a form that's natural to work with often feels like a fight!
+
+There are two main engines of knowledge generation: visualization and modeling. These have complementary strengths and weaknesses, so any real data analysis will iterate between them many times.
+
+Visualization is a fundamentally human activity. A good visualization will show you things you did not expect or raise new questions about the data.
+
+Models are complementary tools to visualization. ... But every model makes assumptions, and by its very nature, a model cannot question its own assumptions. That means a model cannot fundamentally surprise you.
+
+The last step of data science is communication, an absolutely critical part of any data analysis project. It doesn't matter how well your models and visualization have led you to understand the data unless you can also communicate your results to others.
+
+Surrounding all these tools is programming. You don't need to be an expert programmer to be a successful data scientist, but learning more about programming pays off because becoming a better programmer allows you to automate common tasks and solve new problems with greater ease.
+
+There's a rough 80/20 rule at play: you can tackle about 80% of every project using the tools you'll learn in this book, but you'll need other tools to tackle the remaining 20%. Throughout this book, we'll point you to resources where you can learn more.
+
+The pain is worth the effort.
+
+This book can't cover every important topic:
+
+## Modeling
+
+recommend Tidy Modeling with R by our colleagues Max Kuhn and Julia Silge
+
+## Big data
+
+The tools you'll learn throughout the majority of this book will easily handle hundreds of megabytes of data, and with a bit of care, you can typically use them to work with a few gigabytes of data. If you're routinely working with larger data (10--100 GB, say), we recommend learning more about data.table. We don't teach it here because it uses a different interface than the tidyverse and requires you to learn some different conventions. However, it is incredibly faster, and the performance payoff is worth investing some time in learning it if you're working with large data.
+
+## Python, Julia, and friends
+
+And in practice, most data science teams use a mix of languages, often at least R and Python. But we strongly believe that it's best to master one tool at a time, and R is a great place to start.
+
+## Prerequisites
+
+ou should be generally numerically literate, and it's helpful if you have some basic programming experience already. If you've never programmed before, you might find Hands on Programming with R by Garrett to be a valuable adjunct to this book.
+
+## R
+
+To download R, go to CRAN, the comprehensive R archive network, https://cloud.r-project.org. A new major version of R comes out once a year, and there are 2-3 minor releases each year.
+
+## RStudio
+
+RStudio is an integrated development environment, or IDE, for R programming, which you can download from https://posit.co/download/rstudio-desktop/.
+
+The tidyverse An R package is a collection of functions, data, and documentation that extends the capabilities of base R.The majority of the packages that you will learn in this book are part of the so-called tidyverse. All packages in the tidyverse share a common philosophy of data and R programming and are designed to work together.
+
+## Other packages
+
+install.packages( c("arrow", "babynames", "curl", "duckdb", "gapminder", "ggrepel", "ggridges", "ggthemes", "hexbin", "janitor", "Lahman", "leaflet", "maps", "nycflights13", "openxlsx", "palmerpenguins", "repurrrsive", "tidymodels", "writexl") )
+
+> , called the prompt;
+
+## Colophon
+
+An online version of this book is available at https://r4ds.hadley.nz. It will continue to evolve in between reprints of the physical book. The source of the book is available at https://github.com/hadley/r4ds. The book is powered by Quarto, which makes it easy to write books that combine text and executable code.
+
+# Whole game
+
+Our goal in this part of the book is to give you a rapid overview of the main tools of data science: importing, tidying, transforming, and visualizing data, as shown in Figure 1. 
+
+Four chapters focus on the tools of data science:
+
+	Visualization is a great place to start with R programming
+	
+	in Chapter 3, you’ll learn the key verbs that allow you to select important variables, filter out key observations, create new variables, and compute summaries.
+	
+	In Chapter 5, you’ll learn about tidy data, 
+	
+	In Chapter 7you’ll learn the basics of getting .csv files into R.
+	
+	In Chapter 2, Chapter 4, and Chapter 6you’ll learn good workflow practices for writing and organizing your R code. Finally, Chapter 8will teach you how to get help and keep learning.
+	
+
+

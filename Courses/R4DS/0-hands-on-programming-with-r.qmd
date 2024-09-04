@@ -1,0 +1,1625 @@
+---
+title: "Hands-On Programming with R"
+format: html
+editor: visual
+---
+
+## Hands-On Programming with R
+
+# Preface
+
+R is designed to be a tool that helps scientists analyze data.
+
+From \<<https://rstudio-education.github.io/hopr/preface.html>\>
+
+Greg compares R to SPSS, but he assumes that you use the full powers of R; in other words, that you learn how to program in R. If you only use functions that preexist in R, you are using R like SPSS: it is a bus that can only take you to certain places.
+
+Learning to program is like learning to speak another language---you progress faster when you practice. In fact, learning to program is learning to speak another language. You will get the best results if you follow along with the examples in the book and experiment whenever an idea strikes you.
+
+Rice University.
+
+## **1 Project 1: Weighted Dice**
+
+**Cancelling commands :**
+
+ctrl + c
+
+You can see which object names you have already used with the function **ls()**
+
+If you give R two vectors of unequal lengths, R will repeat the shorter vector until it is as long as the longer vector, and then do the math, as shown in Figure [2.4](https://rstudio-education.github.io/hopr/basics.html#fig:recycle). This isn\'t a permanent change--the shorter vector will be its original size after R does the math. If the length of the short vector does not divide evenly into the length of the long vector, R will return a warning message. This behavior is known as vector recycling, and it helps R do element-wise operations
+
+inner multiplication with the %\*% operator and outer multiplication with the %o% operator:
+
+die %\*% die\
+\## 91
+
+die %o% die\
+##      \[,1\] \[,2\] \[,3\] \[,4\] \[,5\] \[,6\]\
+\## \[1,\]    1    2    3    4    5    6\
+\## \[2,\]    2    4    6    8   10   12\
+\## \[3,\]    3    6    9   12   15   18\
+\## \[4,\]    4    8   12   16   20   24\
+\## \[5,\]    5   10   15   20   25   30\
+\## \[6,\]    6   12   18   24   30   36
+
+transpose a matrix with **t** and take its determinant with **det**.
+
+simulate a roll of the die with R\'s sample function :
+
+sample(x =die, size =1)
+
+If you\'re not sure which names to use with a function, you can look up the function\'s arguments with args:
+
+args(round)\
+\## function (x, digits = 0) \
+\## NULL
+
+The argument replace = TRUE causes sample to sample with replacement.
+
+sample(die, size =2, replace =TRUE)\
+\## 5 5
+
+Sampling with replacement is an easy way to create independent random samples.
+
+**The Function Constructor**
+
+roll \<- function() {\
+  die \<- 1:6dice \<- sample(die, size =2, replace =TRUE)\
+  sum(dice)\
+}
+
+Roll()
+
+Bones \<- 1:6
+
+roll2 \<- function(bones) {\
+  dice \<- sample(Bones, size =2, replace =TRUE)\
+  sum(dice)\
+}
+
+Roll2(Bones)
+
+giving the bones argument a default value
+
+roll2 \<- function(bones =1:6) {\
+  dice \<- sample(bones, size =2, replace =TRUE)\
+  sum(dice)\
+}
+
+**Extract function**
+
+RStudio comes with a tool that can help you build functions. To use it, highlight the lines of code in your R script that you want to turn into a function. Then click Code \> Extract Function in the menu bar. RStudio will ask you for a function name to use and then wrap your code in a function call. It will scan the code for undefined variables and use these as arguments.
+
+## **3 Packages and Help Pages**
+
+use the ggplot2::qplot function to make some quick plots.
+
+ScatterPlot qplot(x, y)
+
+qplot will make a **histogram** whenever you give it only one vector to plot
+
+To make sure our graphs look the same, use the extra argument binwidth = 1:
+
+x \<- c(1, 2, 2, 2, 3, 3)\
+qplot(x, binwidth =1)
+
+\`qplot()\` was deprecated in ggplot2 3.4.0.
+
+replicate will run the command multiple times and store the results as a vector:
+
+replicate(3, 1+ 1)\
+\## 2 2 2
+
+replicate(10, roll())\
+\## 3  7  5  3  6  2  3  8 11  7
+
+## **4 Project 2: Playing Cards**
+
+To keep the project simple, I\'ve divided it into four tasks. Each task will teach you a new skill for managing data with R:
+
+**Task 1: build the deck**
+
+In [R Objects](https://rstudio-education.github.io/hopr/r-objects.html#r-objects), you will design and build a virtual deck of playing cards.
+
+**Task 2: write functions that deal and shuffle**
+
+Next, in [R Notation](https://rstudio-education.github.io/hopr/r-notation.html#r-notation), you will write two functions to use with the deck.
+
+**Task 3: change the point system to suit your game**
+
+In [Modifying Values](https://rstudio-education.github.io/hopr/modify.html#modify), you will use R\'s notation system to change the point values of your cards to match the card games you may wish to play, like war, hearts, or blackjack.
+
+**Task 4: manage the state of the deck**
+
+Finally, in [Environments](https://rstudio-education.github.io/hopr/environments.html#environments-1), you will make sure that your deck remembers which cards it has dealt. This is an advanced task, and it will introduce R\'s environment system and scoping rules. To do it successfully, you will need to learn the minute details of how R looks up and uses the data that you have stored in your computer.
+
+## **5 R Objects**
+
+use R to assemble a deck of 52 playing cards..
+
+**5.1 Atomic Vectors**
+
+**is.vector**
+
+is.vector tests whether an object is an atomic vector. It returns TRUE if the object is an atomic vector and FALSE otherwise.
+
+**length**
+
+length returns the length of an atomic vector.
+
+An atomic vector is just a simple vector of data. C()
+
+R recognizes six basic types of atomic vectors: doubles, integers, characters, logicals, complex, and raw.
+
+you can create an integer vector by including a capital L with your input. You can create a character vector by surrounding your input in quotation marks:
+
+int \<- 1L\
+text \<- "ace"
+
+Type(int)      integer
+
+**5.1.1 Doubles**
+
+A double vector stores regular numbers. The numbers can be positive or negative, large or small, and have digits to the right of the decimal place or not. In general, R will save any number that you type in R as a double.
+
+die \<- c(1, 2, 3, 4, 5, 6)
+
+what type of object an object is with typeof
+
+typeof(die)\
+##  "double"
+
+Some R functions refer to doubles as \"numerics,\" and I will often do the same. Double is a computer science term. It refers to the specific number of bytes your computer uses to store a number, but I find \"numeric\" to be much more intuitive when doing data science.
+
+**5.1.2 Integers**
+
+Integer vectors store integers, numbers that can be written without a decimal component. As a data scientist, you won\'t use the integer type very often because you can save integers as a double object.
+
+The only difference between 4 and 4L is how R saves the number in your computer\'s memory.
+
+Integers are defined more precisely in your computer\'s memory than doubles (unless the integer is very large or small).
+
+Why would you save your data as an integer instead of a double? Sometimes a difference in precision can have surprising effects. Your computer allocates 64 bits of memory to store each double in an R program. This allows a lot of precision, but some numbers cannot be expressed exactly in 64 bits, the equivalent of a sequence of 64 ones and zeroes. For example, the number πcontains an endless sequences of digits to the right of the decimal place. Your computer must round πto something close to, but not exactly equal to πto store π
+
+in its memory. Many decimal numbers share a similar fate.
+
+As a result, each double is accurate to about 16 significant digits. This introduces a little bit of error. In most cases, this rounding error will go unnoticed. However, in some situations, the rounding error can cause surprising results. For example, you may expect the result of the expression below to be zero, but it is not:
+
+sqrt(2)\^2- 2
+
+\## 4.440892e-16
+
+The square root of two cannot be expressed exactly in 16 significant digits. As a result, R has to round the quantity, and the expression resolves to something very close to---but not quite---zero.
+
+These errors are known as floating-point errors, and doing arithmetic in these conditions is known as floating-point arithmetic. Floating-point arithmetic is not a feature of R; it is a feature of computer programming. Usually floating-point errors won\'t be enough to ruin your day. Just keep in mind that they may be the cause of surprising results.
+
+You can avoid floating-point errors by avoiding decimals and only using integers. However, this is not an option in most data-science situations. You cannot do much math with integers before you need a noninteger to express the result. Luckily, the errors caused by floating-point arithmetic are usually insignificant (and when they are not, they are easy to spot). As a result, you\'ll generally use doubles instead of integers as a data scientist.
+
+**5.1.3 Characters**
+
+A character vector stores small pieces of text.
+
+The individual elements of a character vector are known as strings. Note that a string can contain more than just letters. You can assemble a character string from numbers or symbols as well.
+
+**5.1.4 Logicals**
+
+Logical vectors store TRUEs and FALSEs, R\'s form of Boolean data.
+
+**5.1.5Complex and Raw**
+
+Complex vectors store complex numbers. To create a complex vector, add an imaginary term to a number with i:
+
+comp \<- c(1+ 1i, 1+ 2i, 1+ 3i)\
+comp\
+\## 1+1i 1+2i 1+3i
+
+typeof(comp)\
+\## "complex"
+
+Raw vectors store raw bytes of data. Making raw vectors gets complicated, but you can make an empty raw vector of length n with raw(n). See the help page of raw for more options when working with this type of data:
+
+raw(3)\
+\## 00 00 00
+
+typeof(raw(3))\
+\## "raw"
+
+**5.2 Attributes**
+
+An attribute is a piece of information that you can attach to an atomic vector (or any R object). The attribute won\'t affect any of the values in the object, and it will not appear when you display your object. You can think of an attribute as \"metadata\"; it is just a convenient place to put information associated with an object. R will normally ignore this metadata, but some R functions will check for specific attributes. These functions may use the attributes to do special things with the data.
+
+**NULL**
+
+R uses NULL to represent the null set, an empty object. NULL is often returned by functions whose values are undefined. You can create a NULL object by typing NULL in capital letters.
+
+You can see which attributes an object has with **attributes**
+
+**5.2.1 Names**
+
+The most common attributes to give an atomic vector are names, dimensions (dim), and classes.
+
+To remove the names attribute, set it to NULL:
+
+names(die) \<- NULLdie\
+##  1 2 3 4 5 6
+
+names(die) \<- c("one", "two", "three", "four", "five", "six")
+
+names(die)\
+\## "one"   "two"   "three" "four"  "five"  "six"
+
+attributes(die)\
+\## \$names\
+\## \[1\] "one"   "two"   "three" "four"  "five"  "six"
+
+**5.2.2 Dim**
+
+You can transform an atomic vector into an n-dimensional array by giving it a dimensions attribute with dim. To do this, set the dim attribute to a numeric vector of length n. R will reorganize the elements of the vector into n dimensions. Each dimension will have as many rows (or columns, etc.) as the nth value of the dim vector. For example, you can reorganize die into a 2 × 3 matrix (which has 2 rows and 3 columns):
+
+dim(die) \<- c(2, 3)\
+die\
+##      \[,1\] \[,2\] \[,3\]\
+\## \[1,\]    1    3    5\
+\## \[2,\]    2    4    6
+
+or a 1 × 2 × 3 hypercube (which has 1 row, 2 columns, and 3 \"slices\"). This is a three-dimensional structure, but R will need to show it slice by slice by slice on your two-dimensional computer screen:
+
+dim(die) \<- c(1, 2, 3)\
+die\
+\## , , 1\
+\## \
+##      \[,1\] \[,2\]\
+\## \[1,\]    1    2\
+\## \
+\## , , 2\
+\## \
+##      \[,1\] \[,2\]\
+\## \[1,\]    3    4\
+\## \
+\## , , 3\
+\## \
+##      \[,1\] \[,2\]\
+\## \[1,\]    5    6
+
+**5.3 Matrices**
+
+Matrices store values in a two-dimensional array, just like a matrix from linear algebra. To create one, first give matrix an atomic vector to reorganize into a matrix. Then, define how many rows should be in the matrix by setting the nrow argument to a number. matrix will organize your vector of values into a matrix with the specified number of rows. Alternatively, you can set the ncol argument, which tells R how many columns to include in the matrix:
+
+m \<- matrix(die, nrow =2)\
+m\
+##      \[,1\] \[,2\] \[,3\]\
+\## \[1,\]    1    3    5\
+\## \[2,\]    2    4    6
+
+matrix will fill up the matrix column by column by default, but you can fill the matrix row by row if you include the argument byrow = TRUE:
+
+m \<- matrix(die, nrow =2, byrow =TRUE)\
+m\
+##      \[,1\] \[,2\] \[,3\]\
+\## \[1,\]    1    2    3\
+\## \[2,\]    4    5    6
+
+**5.4 Arrays**
+
+The array function creates an n-dimensional array.
+
+ar \<- array(c(11:14, 21:24, 31:34), dim =c(2, 2, 3))\
+ar
+
+**5.5 Class**
+
+Notice that changing the dimensions of your object will not change the type of the object, but it will change the object\'s class attribute:
+
+dim(die) \<- c(2, 3)\
+typeof(die)\
+##  "double"\
+ \
+class(die)\
+##  "matrix"
+
+A matrix is a special case of an atomic vector.
+
+R added a class attribute to die when you changed its dimensions. This class describes die\'s new format. Many R functions will specifically look for an object\'s class attribute, and then handle the object in a predetermined way based on the attribute.
+
+Note that an object\'s class attribute will not always appear when you run attributes; you may need to specifically search for it with class:
+
+attributes(die)\
+\## \$dim\
+\## \[1\] 2 3
+
+Notice that the \"class\" of a double is \"numeric,
+
+You\'ll learn how to make and use your own classes in [Project 3: Slot Machine](https://rstudio-education.github.io/hopr/project-3-slot-machine.html#project-3-slot-machine).
+
+**5.5.1 Dates and Times**
+
+The attribute system lets R represent more types of data than just doubles, integers, characters, logicals, complexes, and raws. The time looks like a character string when you display it, but its data type is actually "double", and its class is "POSIXct" "POSIXt" (it has two classes):
+
+now \<- Sys.time()\
+now\
+\## "2014-03-17 12:00:00 UTC"
+
+typeof(now)\
+##  "double"
+
+class(now)\
+\## "POSIXct" "POSIXt"
+
+POSIXct is a widely used framework for representing dates and times. In the POSIXct framework, each time is represented by the number of seconds that have passed between the time and 12:00 AM January 1st 1970 (in the Universal Time Coordinated (UTC) zone). For example, the time above occurs 1,395,057,600 seconds after then. So in the POSIXct system, the time would be saved as 1395057600.
+
+R creates the time object by building a double vector with one element, 1395057600. You can see this vector by removing the class attribute of now, or by using the unclass function, which does the same thing:
+
+unclass(now)\
+\## 1395057600
+
+R then gives the double vector a class attribute that contains two classes, "POSIXct" and "POSIXt". This attribute alerts R functions that they are dealing with a POSIXct time, so they can treat it in a special way. For example, R functions will use the POSIXct standard to convert the time into a user-friendly character string before displaying it.
+
+You can take advantage of this system by giving the POSIXct class to random R objects. For example, have you ever wondered what day it was a million seconds after 12:00 a.m. Jan. 1, 1970?
+
+mil \<- 1000000mil\
+\## 1e+06\
+ \
+class(mil) \<- c("POSIXct", "POSIXt")\
+mil\
+\## "1970-01-12 13:46:40 UTC"
+
+Jan. 12, 1970. Yikes. A million seconds goes by faster than you would think. This conversion worked well because the POSIXct class does not rely on any additional attributes, but in general, forcing the class of an object is a bad idea.
+
+There are many different classes of data in R and its packages, and new classes are invented every day. It would be difficult to learn about every class, but you do not have to. Most classes are only useful in specific situations. Since each class comes with its own help page, you can wait to learn about a class until you encounter it. However, there is one class of data that is so ubiquitous in R that you should learn about it alongside the atomic data types. That class is factors.
+
+**5.5.2 Factors**
+
+Factors are R\'s way of storing categorical information, like ethnicity or eye color.
+
+To make a factor, pass an atomic vector into the factor function. R will recode the data in the vector as integers and store the results in an integer vector. R will also add a levels attribute to the integer, which contains a set of labels for displaying the factor values, and a class attribute, which contains the class factor:
+
+gender \<- factor(c("male", "female", "female", "male"))
+
+typeof(gender)\
+\## "integer"
+
+attributes(gender)\
+\## \$levels\
+\## \[1\] "female" "male"  \
+\## \
+\## \$class\
+\## \[1\] "factor"
+
+You can see exactly how R is storing your factor with unclass:
+
+unclass(gender)\
+\## \[1\] 2 1 1 2\
+\## attr(,"levels")\
+\## \[1\] "female" "male" 
+
+Factors make it easy to put categorical variables into a statistical model because the variables are already coded as numbers. However, factors can be confusing since they look like character strings but behave like integers.
+
+**Data types in vectors**
+
+If you try to put multiple types of data into a vector, R will convert the elements to a single type of data.
+
+You can convert a factor to a character string with the as.character function. R will retain the display version of the factor, not the integers stored in memory:
+
+as.character(gender)\
+\## "male"   "female" "female" "male"
+
+Since matrices and arrays are special cases of atomic vectors, they suffer from the same behavior. Each can only store one type of data.
+
+Second, coercion is a common behavior in R, so you\'ll want to know how it works.
+
+**5.6Coercion**
+
+**Coercion:**
+
+R always uses the same rules to coerce data to a single type. If character strings are present, everything will be coerced to a character string. Otherwise, logicals are coerced to numerics.
+
+<https://rstudio-education.github.io/hopr/images/hopr_0301.png>
+
+R uses the same coercion rules when you try to do math with logical values. So the following code:
+
+sum(c(TRUE, TRUE, FALSE, FALSE))
+
+will become:
+
+sum(c(1, 1, 0, 0))\
+\## 2
+
+This means that sum will count the number of TRUEs in a logical vector (and mean will calculate the proportion of TRUEs). Neat, huh?
+
+You can explicitly ask R to convert data from one type to another with the as functions. R will convert the data whenever there is a sensible way to do so:
+
+as.character(1)\
+\## "1"
+
+as.logical(1)\
+\## TRUE
+
+as.numeric(FALSE)\
+\## 0
+
+**5.7 Lists**
+
+Lists are like atomic vectors because they group data into a one-dimensional set. However, lists do not group together individual values; lists group together R objects, such as atomic vectors and other lists.
+
+list creates a list the same way c creates a vector. Separate each element in the list with a comma:
+
+list1 \<- list(100:130, "R", list(TRUE, FALSE))\
+list1
+
+**5.8 Data Frames**
+
+Data frames are the two-dimensional version of a list.
+
+They are far and away the most useful storage structure for data analysis, and they provide an ideal way to store an entire deck of cards. You can think of a data frame as R\'s equivalent to the Excel spreadsheet because it stores data in a similar format.
+
+Data frames group vectors together into a two-dimensional table. Each vector becomes a column in the table. As a result, each column of a data frame can contain a different type of data; but within a column, every cell must be the same type of data, as in Figure [5.2](https://rstudio-education.github.io/hopr/r-objects.html#fig:data-frame).
+
+Give data.frame any number of vectors, each separated with a comma. Each vector should be set equal to a name that describes the vector. data.frame will turn each vector into a column of the new data frame:
+
+df \<- data.frame(face =c("ace", "two", "six"),  \
+  suit =c("clubs", "clubs", "clubs"), value =c(1, 2, 3))\
+df\
+\## face  suit value\
+##  ace clubs     1\
+##  two clubs     2\
+##  six clubs     3
+
+**Names**
+
+You can also give names to a list or vector when you create one of these objects. Use the same syntax as with data.frame:
+
+list(face = "ace", suit = "hearts", value = 1)
+
+c(face = "ace", suit = "hearts", value = "one")
+
+The names will be stored in the object\'s names attribute.
+
+If you look at the type of a data frame, you will see that it is a list. In fact, each data frame is a list with class data.frame. You can see what types of objects are grouped together by a list (or data frame) with the str function:
+
+typeof(df)\
+\## "list"
+
+class(df)\
+\## "data.frame"
+
+str(df)\
+\## 'data.frame':    3 obs. of  3 variables:\
+##  \$ face : Factor w/ 3 levels "ace","six","two": 1 3 2\
+##  \$ suit : Factor w/ 1 level "clubs": 1 1 1\
+##  \$ value: num  1 2 3
+
+Notice that R saved your character strings as factors. I told you that R likes factors! It is not a very big deal here, but you can prevent this behavior by adding the argument stringsAsFactors = FALSE to data.frame:
+
+df \<- data.frame(face =c("ace", "two", "six"),   suit =c("clubs", "clubs", "clubs"), value =c(1, 2, 3),  
+
+stringsAsFactors =FALSE)
+
+**5.10 Saving Data**
+
+write.csv(deck, file ="cards.csv", row.names =FALSE)
+
+Finally, you should add the argument row.names = FALSE. This will prevent R from adding a column of numbers at the start of your data frame.
+
+**5.11 Summary**
+
+You can save data in R with five different objects, which let you store different types of values in different types of relationships, as in Figure [5.6](https://rstudio-education.github.io/hopr/r-objects.html#fig:structures). Of these objects, data frames are by far the most useful for data science. Data frames store one of the most common forms of data used in data science, tabular data.
+
+![](images/hopr_0306.png)
+
+## **6 R Notation**
+
+**6.1 Selecting Values**
+
+R has a notation system that lets you extract values from R objects. To extract a value or set of values from a data frame, write the data frame\'s name followed by a pair of hard brackets:
+
+deck\[ , \]
+
+You have a choice when it comes to writing indexes. There are six different ways to write an index for R, and each does something slightly different.
+
+-    Positive integers
+
+-    Negative integers
+
+-    Zero
+
+-    Blank spaces
+
+-    Logical values
+
+-    Names
+
+**6.1.1 Positive Integers**
+
+R treats positive integers just like ij notation in linear algebra: deck\[i,j\].
+
+To extract more than one value, use a vector of positive integers.
+
+deck\[1, c(1, 2, 3)\]
+
+**Repetition**
+
+If you repeat a number in your index, R will return the corresponding value(s) more than once in your \"subset.\" This code will return the first row of deck twice:
+
+deck\[c(1, 1), c(1, 2, 3)\]
+
+**Indexing begins at 1**
+
+In some programming languages, indexing begins with 0. This means that 0 returns the first element of a vector, 1 returns the second element, and so on.
+
+This isn\'t the case with R. Indexing in R behaves just like indexing in linear algebra. The first element is always indexed by 1. Why is R different? Maybe because it was written for mathematicians. Those of us who learned indexing from a linear algebra course wonder why computers programmers start with 0.
+
+**drop = FALSE**
+
+If you select two or more columns from a data frame, R will return a new data frame:
+
+deck\[1:2, 1:2\]\
+However, if you select a single column, R will return a vector:
+
+deck\[1:2, 1\]\
+If you would prefer a data frame instead, you can add the optional argument drop = FALSE between the brackets:
+
+deck\[1:2, 1, drop = FALSE\]\
+This method also works for selecting a single column from a matrix or an array.
+
+**6.1.2 Negative Integers**
+
+Negative integers do the exact opposite of positive integers when indexing. R will return every element except the elements in a negative index.
+
+deck\[-(2:52), 1:3\]
+
+Negative integers are a more efficient way to subset than positive integers if you want to include the majority of a data frame\'s rows or columns.
+
+R will return an error if you try to pair a negative integer with a positive integer in the same index:
+
+deck\[c(-1, 1), 1\]\
+\## Error in xj\[i\] : only 0's may be mixed with negative subscripts
+
+However, you can use both negative and positive integers to subset an object if you use them in different indexes (e.g., if you use one in the rows index and one in the columns index, like deck\[-1, 1\]).
+
+**6.1.3 Zero**
+
+R will return nothing from a dimension when you use zero as an index. This creates an empty object:
+
+deck\[0, 0\]\
+\## data frame with 0 columns and 0 rows
+
+To be honest, indexing with zero is not very helpful.
+
+**6.1.4 Blank Spaces**
+
+You can use a blank space to tell R to extract every value in a dimension. This lets you subset an object on one dimension but not the others, which is useful for extracting entire rows or columns from a data frame:
+
+deck\[1, \]
+
+**6.1.5 Logical Values**
+
+If you supply a vector of TRUEs and FALSEs as your index, R will match each TRUE and FALSE to a row in your data frame (or a column depending on where you place the index). R will then return each row that corresponds to a TRUE, Figure [6.2](https://rstudio-education.github.io/hopr/r-notation.html#fig:logicals).
+
+This system may seem odd---who wants to type so many TRUEs and FALSEs?---but it will become very powerful in [Modifying Values](https://rstudio-education.github.io/hopr/modify.html#modify).
+
+**6.1.6 Names**
+
+Finally, you can ask for the elements you want by name---if your object has names (see [Names](https://rstudio-education.github.io/hopr/r-objects.html#names)). This is a common way to extract the columns of a data frame, since columns almost always have names:
+
+deck\[1, c("face", "suit", "value")\]
+
+**6.4 Dollar Signs and Double Brackets**
+
+Two types of object in R obey an optional second system of notation. You can extract values from data frames and lists with the \$ syntax.
+
+You can use the same \$ notation with the elements of a list, if they have names.
+
+lst \<- list(numbers =c(1, 2), logical =TRUE, strings =c("a", "b", "c"))
+
+lst\[1\]\
+\## \$numbers\
+\## \[1\] 1 2
+
+The result is a smaller list with one element. That element is the vector c(1, 2). This can be annoying because many R functions do not work with lists. For example, sum(lst\[1\]) will return an error. It would be horrible if once you stored a vector in a list, you could only ever get it back as a list:
+
+sum(lst\[1\])\
+\## Error in sum(lst\[1\]) : invalid 'type' (list) of argument
+
+When you use the \$ notation, R will return the selected values as they are, with no list structure around them:
+
+lst\$numbers\
+\## 1 2
+
+You can then immediately feed the results to a function:
+
+sum(lst\$numbers)\
+\## 3
+
+If the elements in your list do not have names (or you do not wish to use the names), you can use two brackets, instead of one, to subset the list. This notation will do the same thing as the \$ notation:
+
+lst\[\[1\]\]\
+\## 1 2
+
+In other words, if you subset a list with single-bracket notation, R will return a smaller list. If you subset a list with double-bracket notation, R will return just the values that were inside an element of the list. You can combine this feature with any of R\'s indexing methods:
+
+lst\["numbers"\]\
+\## \$numbers\
+\## \[1\] 1 2
+
+lst\[\["numbers"\]\]\
+\## 1 2
+
+This difference is subtle but important. In the R community, there is a popular, and helpful, way to think about it, Figure [6.3](https://rstudio-education.github.io/hopr/r-notation.html#fig:trains).
+
+![](images/hopr_0403.png)
+
+## **7 Modifying Values**
+
+**7.0.1 Changing Values in Place**
+
+You can use R\'s notation system to modify values within an R object.
+
+You can replace multiple values at once as long as the number of new values equals the number of selected values:
+
+vec\[c(1, 3, 5)\] \<- c(1, 1, 1)
+
+You can also remove columns from a data frame (and elements from a list) by assigning them the symbol NULL:
+
+deck2\$new \<- NULL
+
+**7.0.2 Logical Subsetting**
+
+Do you remember R\'s logical index system, [logicals](https://rstudio-education.github.io/hopr/r-objects.html#logicals)? To recap, you can select values with a vector of TRUEs and FALSEs. The vector must be the same length as the dimension that you wish to subset. R will return every element that matches a TRUE.
+
+**7.0.2.1 Logical Tests**
+
+R provides seven logical operators that you can use to make comparisons, shown in Table [7.1](https://rstudio-education.github.io/hopr/modify.html#tab:logop).
+
++-----+--------------+-----+-------------------+-----+------------------------------------+----+
+|     |              |     |                   |     |                                    |    |
++-----+--------------+-----+-------------------+-----+------------------------------------+----+
+|     | **Operator** |     | **Syntax**        |     | **Tests**                          |    |
++-----+--------------+-----+-------------------+-----+------------------------------------+----+
+|     |              |     |                   |     |                                    |    |
++-----+--------------+-----+-------------------+-----+------------------------------------+----+
+|     | \>           |     | a \> b            |     | Is a greater than b?               |    |
++-----+--------------+-----+-------------------+-----+------------------------------------+----+
+|     |              |     |                   |     |                                    |    |
++-----+--------------+-----+-------------------+-----+------------------------------------+----+
+|     | \>=          |     | a \>= b           |     | Is a greater than or equal to b?   |    |
++-----+--------------+-----+-------------------+-----+------------------------------------+----+
+|     |              |     |                   |     |                                    |    |
++-----+--------------+-----+-------------------+-----+------------------------------------+----+
+|     | \<           |     | a \< b            |     | Is a less than b?                  |    |
++-----+--------------+-----+-------------------+-----+------------------------------------+----+
+|     |              |     |                   |     |                                    |    |
++-----+--------------+-----+-------------------+-----+------------------------------------+----+
+|     | \<=          |     | a \<= b           |     | Is a less than or equal to b?      |    |
++-----+--------------+-----+-------------------+-----+------------------------------------+----+
+|     |              |     |                   |     |                                    |    |
++-----+--------------+-----+-------------------+-----+------------------------------------+----+
+|     | ==           |     | a == b            |     | Is a equal to b?                   |    |
++-----+--------------+-----+-------------------+-----+------------------------------------+----+
+|     |              |     |                   |     |                                    |    |
++-----+--------------+-----+-------------------+-----+------------------------------------+----+
+|     | !=           |     | a != b            |     | Is a not equal to b?               |    |
++-----+--------------+-----+-------------------+-----+------------------------------------+----+
+|     |              |     |                   |     |                                    |    |
++-----+--------------+-----+-------------------+-----+------------------------------------+----+
+|     | %in%         |     | a %in% c(a, b, c) |     | Is a in the group c(a, b, c)?      |    |
++-----+--------------+-----+-------------------+-----+------------------------------------+----+
+|     |              |     |                   |     |                                    |    |
++-----+--------------+-----+-------------------+-----+------------------------------------+----+
+
+Table 7.1: R\'s Logical Operators
+
+%in% is the only operator that does not do normal element-wise execution. %in% tests whether the value(s) on the left side are in the vector on the right side. If you provide a vector on the left side, %in% will not pair up the values on the left with the values on the right and then do element-wise tests. Instead, %in% will independently test whether each value on the left is somewhere in the vector on the right:
+
+1%in% c(3, 4, 5)\
+\## FALSE
+
+c(1, 2) %in% c(3, 4, 5)\
+\## FALSE FALSE
+
+c(1, 2, 3) %in% c(3, 4, 5)\
+\## FALSE FALSE  TRUE
+
+c(1, 2, 3, 4) %in% c(3, 4, 5)\
+\## FALSE FALSE  TRUE  TRUE
+
+If you compare objects of different data types, R will use its coercion rules to coerce the objects to the same type before it makes the comparison.
+
+**7.0.2.2 Boolean Operators**
+
+Boolean operators are things like and (&) and or (\|). They collapse the results of multiple logical tests into a single TRUE or FALSE. R has six boolean operators, shown in Table [7.2](https://rstudio-education.github.io/hopr/modify.html#tab:boole).
+
++-----+--------------+-----+----------------------------------+-----+-----------------------------------------------------------------+----+
+|     |              |     |                                  |     |                                                                 |    |
++-----+--------------+-----+----------------------------------+-----+-----------------------------------------------------------------+----+
+|     | **Operator** |     | **Syntax**                       |     | **Tests**                                                       |    |
++-----+--------------+-----+----------------------------------+-----+-----------------------------------------------------------------+----+
+|     |              |     |                                  |     |                                                                 |    |
++-----+--------------+-----+----------------------------------+-----+-----------------------------------------------------------------+----+
+|     | &            |     | cond1 & cond2                    |     | Are both cond1 and cond2 true?                                  |    |
++-----+--------------+-----+----------------------------------+-----+-----------------------------------------------------------------+----+
+|     |              |     |                                  |     |                                                                 |    |
++-----+--------------+-----+----------------------------------+-----+-----------------------------------------------------------------+----+
+|     | \|           |     | cond1 \| cond2                   |     | Is one or more of cond1 and cond2 true?                         |    |
++-----+--------------+-----+----------------------------------+-----+-----------------------------------------------------------------+----+
+|     |              |     |                                  |     |                                                                 |    |
++-----+--------------+-----+----------------------------------+-----+-----------------------------------------------------------------+----+
+|     | xor          |     | xor(cond1, cond2)                |     | Is exactly one of cond1 and cond2 true?                         |    |
++-----+--------------+-----+----------------------------------+-----+-----------------------------------------------------------------+----+
+|     |              |     |                                  |     |                                                                 |    |
++-----+--------------+-----+----------------------------------+-----+-----------------------------------------------------------------+----+
+|     | !            |     | !cond1                           |     | Is cond1 false? (e.g., ! flips the results of a logical test)   |    |
++-----+--------------+-----+----------------------------------+-----+-----------------------------------------------------------------+----+
+|     |              |     |                                  |     |                                                                 |    |
++-----+--------------+-----+----------------------------------+-----+-----------------------------------------------------------------+----+
+|     | any          |     | any(cond1, cond2, cond3, \...)   |     | Are any of the conditions true?                                 |    |
++-----+--------------+-----+----------------------------------+-----+-----------------------------------------------------------------+----+
+|     |              |     |                                  |     |                                                                 |    |
++-----+--------------+-----+----------------------------------+-----+-----------------------------------------------------------------+----+
+|     | all          |     | all(cond1, cond2, cond3, \...)   |     | Are all of the conditions true?                                 |    |
++-----+--------------+-----+----------------------------------+-----+-----------------------------------------------------------------+----+
+|     |              |     |                                  |     |                                                                 |    |
++-----+--------------+-----+----------------------------------+-----+-----------------------------------------------------------------+----+
+
+Table 7.2: Boolean operators
+
+Is every value in z a day of the week?
+
+z \<- c("Monday", "Tuesday", "Friday")
+
+all(z %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", \
+  "Saturday", "Sunday"))
+
+**7.0.3 Missing Information**
+
+Missing information problems happen frequently in data science.
+
+**7.0.3.1na.rm**
+
+Most R functions come with the optional argument, na.rm, which stands for NA remove.
+
+**7.0.3.2 is.na**
+
+R supplies a special function that can test whether a value is an NA. The function is sensibly named is.na:
+
+is.na(NA)\
+\## TRUE
+
+## **8 Environments**
+
+you will need to learn how R stores, looks up, and manipulates objects like deck. R does all of these things with the help of an environment system.
+
+**8.1 Environments**
+
+Each object is saved inside of an environment, a list-like object that resembles a folder on your computer. Each environment is connected to a parent environment, a higher-level environment, which creates a hierarchy of environments.
+
+You can see R\'s environment system with the parenvs function in the pryr package (note parenvs came in the pryr package when this book was first published). parenvs(all = TRUE) will return a list of the environments that your R session is using.
+
+let\'s visualize the environments as a system of folders, Figure [8.2](https://rstudio-education.github.io/hopr/environments.html#fig:environments). You can think of the environment tree like this. The lowest-level environment is named R_GlobalEnvand so on, until you get to the final, highest-level environment, R_EmptyEnv. R_EmptyEnv is the only R environment that does not have a parent environment.
+
+Remember that this example is just a metaphor. R\'s environments exist in your RAM memory, and not in your file system. Also, R environments aren\'t technically saved inside one another. Each environment is connected to a parent environment, which makes it easy to search up R\'s environment tree.
+
+**8.2 Working with Environments**
+
+R comes with some helper functions that you can use to explore your environment tree. First, you can refer to any of the environments in your tree with as.environment.
+
+ as.environment takes an environment name (as a character string) and returns the corresponding environment:
+
+as.environment("package:stats")
+
+Three environments in your tree also come with their own accessor functions. These are the global environment (R_GlobalEnv), the base environment (base), and the empty environment (R_EmptyEnv).
+
+You can refer to them with:
+
+globalenv()\
+\## \<environment: R_GlobalEnv\>
+
+baseenv()\
+\## \<environment: base\>
+
+emptyenv()\
+##\<environment: R_EmptyEnv\>
+
+Next, you can look up an environment\'s parent with parent.env:
+
+parent.env(globalenv())
+
+Notice that the empty environment is the only R environment without a parent:
+
+parent.env(emptyenv())\
+\## Error in parent.env(emptyenv()) : the empty environment has no parent
+
+You can view the objects saved in an environment with ls or ls.str. ls will return just the object names, but ls.str will display a little about each object\'s structure:
+
+ls(emptyenv())
+
+ls(globalenv())
+
+RStudio\'s environment pane displays all of the objects in your global environment. You can use R\'s \$ syntax to access an object in a specific environment.
+
+head(globalenv()\$deck, 3)
+
+And you can use the assign function to save an object into a particular environment.
+
+assign("new", "Hello Global", envir =globalenv())
+
+globalenv()\$new
+
+\## "Hello Global"
+
+**8.2.1 The Active Environment**
+
+At any moment of time, R is working closely with a single environment.
+
+I\'ll call this special environment the active environment. The active environment is usually the global environment, but this may change when you run a function.
+
+You can use environment to see the current active environment:
+
+environment()\
+\<environment: R_GlobalEnv\>
+
+The global environment plays a special role in R. It is the active environment for every command that you run at the command line. As a result, any object that you create at the command line will be saved in the global environment. You can think of the global environment as your user workspace.
+
+When you call an object at the command line, R will look for it first in the global environment. But what if the object is not there? In that case, R will follow a series of rules to look up the object.
+
+**8.3 Scoping Rules**
+
+From \<<https://rstudio-education.github.io/hopr/environments.html>\>
+
+R follows a special set of rules to look up objects. These rules are known as R\'s scoping rules, and you\'ve already met a couple of them:
+
+1.   R looks for objects in the current active environment.
+
+2.   When you work at the command line, the active environment is the global environment. Hence, R looks up objects that you call at the command line in the global environment.
+
+3.   Here is a third rule that explains how R finds objects that are not in the active environment
+
+4.   When R does not find an object in an environment, R looks in the environment\'s parent environment, then the parent of the parent, and so on, until R finds the object or reaches the empty environment.
+
+5.   If R cannot find the object in any environment, it will return an error that says the object is not found.
+
+Remember that functions are a type of object in R. R will store and look up functions the same way it stores and looks up other objects, by searching for them by name in the environment tree.
+
+**8.4 Assignment**
+
+When you assign a value to an object, R saves the value in the active environment under the object\'s name. If an object with the same name already exists in the active environment, R will overwrite it.
+
+R must save these temporary objects in the active environment; but if R does that, it may overwrite existing objects. Function authors cannot guess ahead of time which names may already exist in your active environment. How does R avoid this risk? Every time R runs a function, it creates a new active environment to evaluate the function in.
+
+**8.5 Evaluation**
+
+From \<<https://rstudio-education.github.io/hopr/environments.html>\>
+
+R creates a new environment each time it evaluates a function. R will use the new environment as the active environment while it runs the function, and then R will return to the environment that you called the function from, bringing the function\'s result with it. Let\'s call these new environments runtime environments because R creates them at runtime to evaluate functions.
+
+show_env \<- function(){\
+  list(ran.in =environment(), \
+    parent =parent.env(environment()), \
+    objects =ls.str(environment()))\
+}
+
+R creates a new environment each time you run a function.
+
+R will connect a function\'s runtime environment to the environment that the function was first created in. This environment plays an important role in the function\'s life---because all of the function\'s runtime environments will use it as a parent. Let\'s call this environment the origin environment. You can look up a function\'s origin environment by running environment on the function:
+
+environment(show_env)
+
+the origin environment does not need to be the global environment.In other words, the parent of a runtime environment will not always be the global environment; it will be whichever environment the function was first created in.
+
+show_env \<- function(){\
+  a \<- 1
+
+b \<- 2
+
+c \<- 3
+
+list(ran.in =environment(), \
+    parent =parent.env(environment()), \
+    objects =ls.str(environment()))\
+}
+
+This time when we run show_env, R stores a, b, and c in the runtime environment:
+
+show_env()\
+\## \$ran.in\
+\## \<environment: 0x7ff712312cd0\>\
+\## \
+\## \$parent\
+\## \<environment: R_GlobalEnv\>\
+\## \
+\## \$objects\
+\## a :  num 1\
+\## b :  num 2\
+\## c :  num 3
+
+R will also put a second type of object in a runtime environment. If a function has arguments, R will copy over each argument to the runtime environment. The argument will appear as an object that has the name of the argument but the value of whatever input the user provided for the argument. This ensures that a function will be able to find and use each of its arguments:
+
+foo \<- "take me to your runtime"
+
+show_env \<- function(x =foo){\
+  list(ran.in =environment(), \
+    parent =parent.env(environment()), \
+    objects =ls.str(environment()))\
+}
+
+show_env()\
+\## \$ran.in\
+\## \<environment: 0x7ff712398958\>\
+\## \
+\## \$parent\
+\## \<environment: R_GlobalEnv\>\
+\## \
+\## \$objects\
+\## x :  chr "take me to your runtime"
+
+To recap, R stores its objects in an environment system. At any moment of time, R is working closely with a single active environment. It stores new objects in this environment, and it uses the environment as a starting point when it searches for existing objects. R\'s active environment is usually the global environment, but R will adjust the active environment to do things like run functions in a safe manner.
+
+**8.6 Closures**
+
+Study via codes
+
+<https://rstudio-education.github.io/hopr/environments.html>
+
+**8.7 Summary**
+
+R saves its objects in an environment system that resembles your computer\'s file system. If you understand this system, you can predict how R will look up objects. If you call an object at the command line, R will look for the object in the global environment and then the parents of the global environment, working its way up the environment tree one environment at a time.
+
+R will use a slightly different search path when you call an object from inside of a function. When you run a function, R creates a new environment to execute commands in. This environment will be a child of the environment where the function was originally defined. This may be the global environment, but it also may not be. You can use this behavior to create closures, which are functions linked to objects in protected environments.
+
+As you become familiar with R\'s environment system, you can use it to produce elegant results, like we did here. However, the real value of understanding the environment system comes from knowing how R functions do their job. You can use this knowledge to figure out what is going wrong when a function does not perform as expected.
+
+## **9 Programs**
+
+### **Project 3: Slot Machine**
+
+**9.1 Strategy**
+
+Scoring slot-machine results is a complex task that will require a complex algorithm. You can make this, and other coding tasks, easier by using a simple strategy:
+
+-    Break complex tasks into simple subtasks.
+
+-    Use concrete examples.
+
+-    Describe your solutions in English, then convert them to R.
+
+-    R programs contain two types of subtasks: sequential steps and parallel cases.
+
+**9.1.1 Sequential Steps**
+
+One way to subdivide a program is into a series of sequential steps. The play function takes the approach, shown in Figure [9.1](https://rstudio-education.github.io/hopr/programs.html#fig:subdivide1). First, it generates three symbols (step 1), then it displays them in the console window (step 2), and then it scores them (step 3):
+
+play \<- function() {
+
+\# step 1: generate symbolssymbols \<- get_symbols()
+
+\# step 2: display the symbolsprint(symbols)
+
+\# step 3: score the symbolsscore(symbols)\
+}
+
+**9.1.2 Parallel Cases**
+
+Another way to divide a task is to spot groups of similar cases within the task. Some tasks require different algorithms for different groups of input. If you can identify those groups, you can work out their algorithms one at a time.
+
+**9.2if Statements**
+
+An if statement tells R to do a certain task for a certain case. In English you would say something like, \"If this is true, do that.\" In R, you would say:
+
+if(this) {\
+  that\
+}
+
+The condition of an if statement must evaluate to a single TRUE or FALSE. If the condition creates a vector of TRUEs and FALSEs (which is easier to make than you may think), your if statement will print a warning message and use only the first element of the vector. Remember that you can condense vectors of logical values to a single TRUE or FALSE with the functions **any** and **all**.
+
+**9.3 else Statements**
+
+In English, you would say, \"If this is true, do plan A; else do plan B.\" In R, you would say:
+
+if(this) {\
+  Plan A\
+} else{\
+  Plan B\
+}
+
+isolate the decimal component with trunc:
+
+dec \<- a - trunc(a)\
+dec\
+\## 0.14
+
+**trunc** takes a number and returns only the portion of the number that appears to the left of the decimal place (i.e., the integer part of the number).
+
+a - trunc(a) is a convenient way to return the decimal part of a.
+
+Then use an if else tree to round the number (either up or down):
+
+if(dec \>= 0.5) {\
+  a \<- trunc(a) + 1} else{\
+  a \<- trunc(a)\
+}
+
+a\
+\## 3
+
+If your situation has more than two mutually exclusive cases, you can string multiple if and else statements together by adding a new if statement immediately after else. For example:
+
+a \<- 1
+
+b \<- 1
+
+If (a \> b) {\
+  print("A wins!")\
+} else if (a \< b) {\
+  print("B wins!")\
+} else{\
+  print("Tie.")\
+}\
+\## "Tie."
+
+&& and \|\| behave like & and \| but can sometimes be more efficient. The double operators will not evaluate the second test in a pair of tests if the first test makes the result clear.
+
+This efficiency can speed up your programs; however, double operators are not appropriate everywhere. && and \|\| are not vectorized, which means they can only handle a single logical test on each side of the operator.
+
+**9.4 Lookup Tables**
+
+payouts \<- c("DD"= 100, "7"= 80, "BBB"= 40, "BB"= 25, \
+  "B"= 10, "C"= 10, "0"= 0)
+
+If you want to leave behind the symbol\'s name when subsetting, you can run the unname function on the output:
+
+unname(payouts\["DD"\])\
+\## 100
+
+payouts is a type of lookup table, an R object that you can use to look up values. Subsetting payouts provides a simple way to find the prize for a symbol.
+
+L**ookup Tables Versus if Trees**
+
+This is the second time we\'ve created a lookup table to avoid writing an if tree. Why is this technique helpful and why does it keep appearing? Many if trees in R are essential. They provide a useful way to tell R to use different algorithms in different cases. However, if trees are not appropriate everywhere.
+
+if trees have a couple of drawbacks. First, they require R to run multiple tests as it works its way down the if tree, which can create unnecessary work. Second, as you\'ll see in [Speed](https://rstudio-education.github.io/hopr/speed.html#speed), it can be difficult to use if trees in vectorized code, a style of code that takes advantage of R\'s programming strengths to create fast programs. Lookup tables do not suffer from either of these drawbacks.
+
+You won\'t be able to replace every if tree with a lookup table, nor should you. However, you can usually use lookup tables to avoid assigning variables with if trees. As a general rule, use an if tree if each branch of the tree runs different code. Use a lookup table if each branch of the tree only assigns a different value.
+
+To convert an if tree to a lookup table, identify the values to be assigned and store them in a vector. Next, identify the selection criteria used in the conditions of the if tree. If the conditions use character strings, give your vector names and use name-based subsetting. If the conditions use integers, use integer-based subsetting.
+
+**9.6 Summary**
+
+Divide the job before you into simple tasks, and then divide the tasks again. You can visualize the relationship between tasks with a flow chart if it helps. Then work on the subtasks one at a time. Describe solutions in English, then convert them to R code. Test each solution against concrete examples as you go. Once each of your subtasks works, combine your code into a function that you can share and reuse.
+
+R provides tools that can help you do this. You can manage cases with if and else statements. You can create a lookup table with objects and subsetting. You can add code comments with #. And you can save your programs as a function with function.
+
+## **10 S3**
+
+**10.1 The S3 System**
+
+S3 refers to a class system built into R. The system governs how R handles objects of different classes. Certain R functions will look up an object\'s S3 class, and then behave differently in response.
+
+If you use objects with classes---and you do---you will run into R\'s S3 system. S3 behavior can seem odd at first, but is easy to predict once you are familiar with it.
+
+R\'s S3 system is built around three components: attributes (especially the class attribute), generic functions, and methods.
+
+**10.2 Attributes**
+
+Attributes do not affect the values of the object, but stick to the object as a type of metadata that R can use to handle the object.
+
+For example, a data frame stores its row and column names as attributes. Data frames also store their class, "data.frame", as an attribute.
+
+You can see an object\'s attributes with attribute.
+
+You can use any of these functions to retrieve an attribute\'s value:
+
+names,
+
+dim,
+
+Class,
+
+row.names,
+
+ levels,
+
+R is very laissez faire when it comes to attributes. It will let you add any attributes that you like to an object (and then it will usually ignore them). The only time R will complain is when a function needs to find an attribute and it is not there.
+
+You can add any general attribute to an object with attr;
+
+you can also use attr to look up the value of any attribute of an object.
+
+attr takes two arguments: an R object and the name of an attribute (as a character string).
+
+attr(one_play, "symbols") \<- c("B", "0", "B")
+
+attributes(one_play)\
+\## \$symbols\
+\## \[1\] "B" "0" "B"
+
+To look up the value of any attribute, give attr an R object and the name of the attribute you would like to look up:
+
+attr(one_play, "symbols")
+
+R will generally ignore an object\'s attributes unless you give them a name that an R function looks for, like names or class.
+
+**Exercise 10.1 (Add an Attribute)** Modify play to return a prize that contains the symbols associated with it as an attribute named symbols. Remove the redundant call to print(symbols):
+
+play \<- function() {\
+  symbols \<- get_symbols()\
+  print(symbols)\
+  score(symbols)\
+}
+
+Solution. You can create a new version of play by capturing the output of score(symbols) and assigning an attribute to it. play can then return the enhanced version of the output:
+
+play \<- function() {\
+  symbols \<- get_symbols()\
+  prize \<- score(symbols)\
+  attr(prize, "symbols") \<- symbols\
+  prize\
+}
+
+You can also generate a prize and set its attributes in one step with the structure function. structure creates an object with a set of attributes. The first argument of structure should be an R object or set of values, and the remaining arguments should be named attributes for structure to add to the object. You can give these arguments any argument names you like. structure will add the attributes to the object under the names that you provide as argument names:
+
+play \<- function() {\
+  symbols \<- get_symbols()\
+  structure(score(symbols), symbols =symbols)\
+}
+
+three_play \<- play()\
+three_play\
+##  0\
+##  attr(,"symbols")\
+##  "0"  "BB" "B"
+
+slot_display \<- function(prize){
+
+\# extract symbolssymbols \<- attr(prize, "symbols")
+
+\# collapse symbols into single stringsymbols \<- paste(symbols, collapse =" ")
+
+\# combine symbol with prize as a character string# \\n is special escape sequence for a new line (i.e. return or enter)string \<- paste(symbols, prize, sep ="\\n\$")
+
+\# display character string in console without quotescat(string)\
+}
+
+slot_display(one_play)\
+\## B 0 B\
+\## \$0
+
+paste collapses a vector of character strings into a single string when you give it the collapse argument.
+
+symbols \<- paste(symbols, collapse =" ")
+
+symbols\
+\## "B 0 B"
+
+Our function then uses paste in a new way to combine symbols with the value of prize. paste combines separate objects into a character string when you give it a sep argument.
+
+cat is like print; it displays its input at the command line. However, cat does not surround its output with quotation marks.
+
+This method of cleaning the output requires you to manually intervene in your R session (to call slot_display). There is a function that you can use to automatically clean up the output of play each time it is displayed. This function is print, and it is a generic function.
+
+**10.3 Generic Functions**
+
+R uses print more often than you may think; R calls print each time it displays a result in your console window.
+
+You can change how R displays your slot output by rewriting print to look like slot_display. Then R would print the output in our tidy format. However, this method would have negative side effects. You do not want R to call slot_display when it prints a data frame, a numerical vector, or any other object.
+
+Fortunately, print is not a normal function; it is a generic function. This means that print is written in a way that lets it do different things in different cases.
+
+**10.4 Methods**
+
+When you call print, print calls a special function, UseMethod:
+
+print\
+\## function (x, \...) \
+\## UseMethod("print")
+
+UseMethod examines the class of the input that you provide for the first argument of print, and then passes all of your arguments to a new function designed to handle that class of input.
+
+ For example, when you give print a POSIXct object, UseMethod will pass all of print\'s arguments to print.POSIXct. R will then run print.POSIXct and return the results:
+
+print.POSIXct\
+\## function (x, \...)
+
+If you give print a factor object, UseMethod will pass all of print\'s arguments to print.factor. R will then run print.factor and return the results:
+
+print.factor\
+\## function (x, quote = FALSE, max.levels = NULL, width = getOption("width"), \
+##     \...)
+
+print.POSIXct and print.factor are called methods of print.
+
+ By themselves, print.POSIXct and print.factor work like regular R functions. However, each was written specifically so UseMethod could call it to handle a specific class of print input.
+
+print calls UseMethod, which calls a specialized method based on the class of print\'s first argument.
+
+You can see which methods exist for a generic function by calling methods on the function. For example, print has almost 200 methods (which gives you an idea of how many classes exist in R):
+
+methods(print)\
+##   \[1\] print.acf\*                                   \
+##   \[2\] print.anova                                  \
+##   \[3\] print.aov\*                                   \
+##  \...                      \
+\## \[176\] print.xgettext\*                              \
+\## \[177\] print.xngettext\*                             \
+\## \[178\] print.xtabs\*\
+\##\
+##   Nonvisible functions are asterisked
+
+This system of generic functions, methods, and class-based dispatch is known as S3 because it originated in the third version of S, the programming language that would evolve into S-PLUS and R.
+
+Many common R functions are S3 generics that work with a set of class methods.
+
+For example, summary and head also call UseMethod.
+
+More basic functions, like c, +, -, \< and others also behave like generic functions, although they call .primitive instead of UseMethod.
+
+The S3 system allows R functions to behave in different ways for different classes.
+
+**10.4.1 Method Dispatch**
+
+UseMethod uses a very simple system to match methods to functions.
+
+Every S3 method has a two-part name. The first part of the name will refer to the function that the method works with. The second part will refer to the class.
+
+These two parts will be separated by a period.
+
+So for example, the print method that works with functions will be called print.function. The summary method that works with matrices will be called summary.matrix. And so on.
+
+When UseMethod needs to call a method, it searches for an R function with the correct S3-style name. The function does not have to be special in any way; it just needs to have the correct name.
+
+You can participate in this system by writing your own function and giving it a valid S3-style name.
+
+When UseMethod needs to call a method, it searches for an R function with the correct S3-style name. The function does not have to be special in any way; it just needs to have the correct name.
+
+Some R objects have multiple classes.
+
+UseMethod will first look for a method that matches the first class listed in the object\'s class vector. If UseMethod cannot find one, it will then look for the method that matches the second class (and so on if there are more classes in an object\'s class vector).
+
+If you give print an object whose class or classes do not have a print method, UseMethod will call print.default, a special method written to handle general cases.
+
+**10.5 Classes**
+
+You can use the S3 system to make a robust new class of objects in R. Then R will treat objects of your class in a consistent, sensible manner. To make a class:
+
+-    Choose a name for your class.
+
+-    Assign each instance of your class a +class+ attribute.
+
+-    Write class methods for any generic function likely to use objects of your class.
+
+Many R packages are based on classes that have been built in a similar manner. You can call methods on a class with the class argument, which takes a character string.
+
+methods will return every method written for the class. Notice that methods will not be able to show you methods that come in an unloaded R package:
+
+methods(class ="factor")
+
+Consider two challenges that you will face right away. First, R drops attributes (like class) when it combines objects into a vector:
+
+c(play1, play2)\
+\## \[1\] 5 0
+
+Here, R stops using print.slots to display the vector because the vector c(play1, play2) no longer has a \"slots\" +class+ attribute.
+
+Next, R will drop the attributes of an object (like class) when you subset the object:
+
+play1\[1\]\
+\## \[1\] 5
+
+You can avoid this behavior by writing a c.slots method and a \[.slots method, but then difficulties will quickly accrue.
+
+**10.6 S3 and Debugging**
+
+S3 can be annoying if you are trying to understand R functions. It is difficult to tell what a function does if its code body contains a call to UseMethod.
+
+**10.7 S4 and R5**
+
+R also contains two other systems that create class specific behavior. These are known as S4 and R5 (or reference classes). Each of these systems is much harder to use than S3, and perhaps as a consequence, more rare. However, they offer safeguards that S3 does not. If you\'d like to learn more about these systems, including how to write and use your own generic functions, I recommend the book [Advanced R Programming](http://adv-r.had.co.nz/) by Hadley Wickham.
+
+**10.8 Summary**
+
+Values are not the only place to store information in R, and functions are not the only way to create unique behavior. You can also do both of these things with R\'s S3 system. The S3 system provides a simple way to create object-specific behavior in R. In other words, it is R\'s version of object-oriented programming (OOP). The system is implemented by generic functions. These functions examine the class attribute of their input and call a class-specific method to generate output. Many S3 methods will look for and use additional information that is stored in an object\'s attributes. Many common R functions are S3 generics.
+
+R\'s S3 system is more helpful for the tasks of computer science than the tasks of data science, but understanding S3 can help you troubleshoot your work in R as a data scientist.
+
+## **11 Loops**
+
+Loops are R\'s method for repeating a task, which makes them a useful tool for programming simulations.
+
+**11.1 Expected Values**
+
+The expected value of a random event is a type of weighted average; it is the sum of each possible outcome of the event, weighted by the probability that each outcome occurs:
+
+E(x)= ∑(xi⋅P(xi))    i (1 : n)
+
+The dieis are the possible outcomes of rolling the die: 1, 2, 3, 4, 5, and 6
+
+with the same probability: 1/6
+
+E(die)=∑ni=1(diei⋅P(diei))=1⋅16+2⋅16+3⋅16+4⋅16+5⋅16+6⋅16=3.5
+
+Hence, the expected value of rolling a fair die is 3.5. You may notice that this is also the average value of the die. The expected value will equal the average if every outcome has the same chance of occurring.
+
+Notice that we did the same three things to calculate both of these expected values. We have:
+
+-    Listed out all of the possible outcomes
+
+-    Determined the value of each outcome (here just the value of the die)
+
+-    Calculated the probability that each outcome occurred
+
+The expected value was then just the sum of the values in step 2 multiplied by the probabilities in step 3.
+
+**11.2 expand.grid**
+
+The expand.grid function in R provides a quick way to write out every combination of the elements in n vectors. For example, you can list every combination of two dice. To do so, run expand.grid on two copies of die:
+
+rolls \<- expand.grid(die, die)
+
+The probability that n independent, random events all occur is equal to the product of the probabilities that each random event occurs.
+
+Or more succinctly:
+
+P(A&B&C&\...)=P(A)⋅P(B)⋅P(C)⋅...
+
+let\'s use our method to calculate the expected value of the slot machine prize. We will follow the same steps we just took:
+
+-   
+
+-   We will list out every possible outcome of playing the machine. This will be a list of every combination of three slot symbols.
+
+-   We will calculate the probability of getting each combination when you play the machine.
+
+-   We will determine the prize that we would win for each combination.
+
+E(prize)=n∑i=1(prizei⋅P(prizei))
+
+**11.3 for Loops**
+
+For (value in that) {\
+  this\
+}
+
+**Choose your symbols carefully**
+
+R will run your loop in whichever environment you call it from. This is bad news if your loop uses object names that already exist in the environment. Your loop will overwrite the existing objects with the objects that it creates. This applies to the value symbol as well.
+
+**For loops run on sets**
+
+In many programming languages, for loops are designed to work with integers, not sets. You give the loop a starting value and an ending value, as well as an increment to advance the value by between loops. The for loop then runs until the loop value exceeds the ending value.
+
+You can recreate this effect in R by having a for loop execute on a set of integers, but don\'t lose track of the fact that R\'s for loops execute on members of a set, not sequences of integers.
+
+**1.4 while Loops**
+
+R has two companions to the for loop: the while loop and the repeat loop. A while loop reruns a chunk while a certain condition remains TRUE. To create a while loop, follow while by a condition and a chunk of code, like this:
+
+while(condition) {\
+  code\
+}
+
+Like for loops, while loops do not return a result, so you must think about what you want the loop to return and save it to an object during the loop.
+
+**11.5 repeat Loops**
+
+repeat loops are even more basic than while loops. They will repeat a chunk of code until you tell them to stop (by hitting Escape) or until they encounter the command break, which will stop the loop.
+
+**11.6 Summary**
+
+Unfortunately, loops in R can sometimes be slower than loops in other languages. As a result, R\'s loops get a bad rap. This reputation is not entirely deserved, but it does highlight an important issue. Speed is essential to data analysis. When your code runs fast, you can work with bigger data and do more to it before you run out of time or computational power.
+
+## **12 Speed**
+
+This chapter will show you a specific way to write fast code in R.
+
+**12.1 Vectorized Code**
+
+You can write a piece of code in many different ways, but the fastest R code will usually take advantage of three things:
+
+1.    logical tests,
+
+2.   subsetting,
+
+3.   and element-wise execution.
+
+These are the things that R does best. Code that uses these things usually has a certain quality: it is vectorized; the code can take a vector of values as input and manipulate each value in the vector at the same time.
+
+system.time takes an R expression, runs it, and then displays how much time elapsed while the expression ran.
+
+Don\'t confuse system.time with Sys.time, which returns the current time.
+
+**12.2 How to Write Vectorized Code**
+
+Vectorized code is easy to write in R because most R functions are already vectorized. Code based on these functions can easily be made vectorized and therefore fast. To create vectorized code:
+
+1.   Use vectorized functions to complete the sequential steps in your program.
+
+2.  Use logical subsetting to handle parallel cases. Try to manipulate every element in a case at once
+
+programmers often write slower, nonvectorized code by relying on unnecessary for loops, like the one in change_many. I think this is the result of a general misunderstanding about R. for loops do not behave the same way in R as they do in other languages, which means you should write code differently in R than you would in other languages.
+
+When you write in languages like C and Fortran, you must compile your code before your computer can run it. This compilation step optimizes how the for loops in the code use your computer\'s memory, which makes the for loops very fast. As a result, many programmers use for loops frequently when they write in C and Fortran.
+
+When you write in R, however, you do not compile your code. You skip this step, which makes programming in R a more user-friendly experience. Unfortunately, this also means you do not give your loops the speed boost they would receive in C or Fortran. As a result, your loops will run slower than the other operations we have studied: logical tests, subsetting, and element-wise execution. If you can write your code with the faster operations instead of a for loop, you should do so. No matter which language you write in, you should try to use the features of the language that run the fastest.
+
+**if and for**
+
+A good way to spot for loops that could be vectorized is to look for combinations of if and for. if can only be applied to one value at a time, which means it is often used in conjunction with a for loop. The for loop helps apply if to an entire vector of values. This combination can usually be replaced with logical subsetting, which will do the same thing but run much faster.
+
+**12.3 How to Write Fast for Loops in R**
+
+You can dramatically increase the speed of your for loops by doing two things to optimize each loop.
+
+First, do as much as you can outside of the for loop.
+
+Second, make sure that any storage objects that you use with the loop are large enough to contain all of the results of the loop.
+
+The authors of R use low-level languages like C and Fortran to write basic R functions, many of which use for loops. These functions are compiled and optimized before they become a part of R, which makes them quite fast.
+
+Whenever you see .Primitive, .Internal, or .Call written in a function\'s definition, you can be confident the function is calling code from another language. You\'ll get all of the speed advantages of that language by using the function.
+
+**12.4 Vectorized Code in Practice**
+
+**12.4.1 Loops Versus Vectorized Code**
+
+You also should not become a slave to vectorized code. Sometimes it would take more time to rewrite code in vectorized format than to let a for loop run.
+
+**12. 5 Summary**
+
+Fast code is an important component of data science because you can do more with fast code than you can do with slow code.The fastest code in R will rely on the things that R does best: logical tests, subsetting, and element-wise execution. I\'ve called this type of code vectorized code because code written with these operations will take a vector of values as input and operate on each element of the vector at the same time. The majority of the code written in R is already vectorized. Be aware, however, that some tasks cannot be vectorized.
+
+**12.6 Project 3 Wrap-up**
+
+I refer to these problems as the logistical, tactical, and strategic problems of data science, as shown in Figure [12.4](https://rstudio-education.github.io/hopr/speed.html#fig:venn). You\'ll face them whenever you try to learn from data:
+
+-    **A logistical problem:** - How can you store and manipulate data without making errors?
+
+-    **A tactical problem** - How can you discover the information contained in your data?
+
+-    **A strategic problem** - How can you use the data to draw conclusions about the world at large?
+
+![](images/hopr_1004-01.png)
+
+Figure 12.4: The three core skill sets of data science: computer programming, data comprehension, and scientific reasoning.
+
+By learning to program in R, you have mastered the logistical problem, which is a prerequisite for solving the tactical and strategic problems.
+
+If you would like to learn how to reason with data, or how to transform, visualize, and explore your data sets with R tools, I recommend the book [R for Data Science](http://r4ds.had.co.nz/), the companion volume to this book. R for Data Science teaches a simple workflow for transforming, visualizing, and modeling data in R, as well as how to report results with the R Markdown package.
+
+## **Appendix E Debugging R Code**
+
+R comes with a simple set of debugging tools that RStudio amplifies.
+
+Debugging code can take as much creativity and insight as writing code. There is no guarantee that you will find a bug or be able to fix it when you do. However, you can help yourself by using R\'s debugging tools.
+
+These include the
+
+ **traceback**,
+
+ **browser**,
+
+**debug**,
+
+**debugonce**,
+
+**trace**,
+
+and **recover**   functions.
+
+Using these tools is usually a two-step process.
+
+ First, you locate where an error occurred.
+
+Then you try to determine why it occurred.
+
+You can do the first step with R\'s **traceback** function.
+
+**E.1 traceback**
+
+The **traceback** tool pinpoints the location of an error.
+
+You can see the path of functions that R called before it hit an error by typing traceback() at the command line. traceback will return a call stack, a list of the functions that R called in the order that it called them. The bottom function will be the command that you entered in the command line. The top function will be the function that caused the error.
+
+traceback will always refer to the last error you encountered.
+
+Second, traceback can show you if R stepped off the path that you expected it to take. If this happened, look at the last function before things went wrong.
+
+Third, traceback can reveal the frightening extent of infinite recursion errors.
+
+RStudio makes it very easy to use traceback. You do not even need to type in the function name. Whenever an error occurs, RStudio will display it in a gray box with two options. The first is Show Traceback, shown in Figure [E.1](https://rstudio-education.github.io/hopr/debug.html#fig:show-traceback).
+
+Figure E.1: RStudio\'s Show Traceback option.
+
+**E.2 browser**
+
+You can ask R to pause in the middle of running a function and give control back to you with browser. This will let you enter new commands at the command line. The active environment for these commands will not be the global environment (as usual); it will be the runtime environment of the function that you have paused. As a result, you can look at the objects that the function is using, look up their values with the same scoping rules that the function would use, and run code under the same conditions that the function would run it in. This arrangement provides the best chance for spotting the source of bugs in a function.
+
+To use browser, add the call browser() to the body of a function and then resave the function.
+
+![](images/hopr_ae03.png)
+
+Figure E.3: RStudio updates its display whenever you enter browser mode to help you navigate the mode.
+
+The third button, Stop, will exit browser mode without running any more lines of score.
+
+![](images/hopr_ae04.png)
+
+Figure E.4: You can navigate browser mode with the three buttons at the top of the console pane.
+
+You can do the same things by typing the commands n, c, and Q into the browser prompt. This creates an annoyance: what if you want to look up an object named n, c, or Q? Typing in the object name will not work, R will either advance, continue, or quit the browser mode. Instead you will have to look these objects up with the commands get("n"), get("c"), and get("Q"). cont is a synonym for c in browser mode and where prints the call stack, so you\'ll have to look up these objects with get as well.
+
+Browser mode can help you see things from the perspective of your functions, but it cannot show you where the bug lies. However, browser mode can help you test hypotheses and investigate function behavior. This is usually all you need to spot and fix a bug. The browser mode is the basic debugging tool of R. Each of the following functions just provides an alternate way to enter the browser mode.
+
+**E.3 Break Points**
+
+RStudio\'s break points provide a graphical way to add a browser statement to a function.
+
+To use them, open the script where you\'ve defined a function. Then click to the left of the line number of the line of code in the function body where you\'d like to add the browser statement. A hollow red dot will appear to show you where the break point will occur. Then run the script by clicking the Source button at the top of the Scripts pane. The hollow dot will turn into a solid red dot to show that the function has a break point (see Figure [E.5](https://rstudio-education.github.io/hopr/debug.html#fig:break-point)).
+
+R will treat the break point like a browser statement, going into browser mode when it encounters it. You can remove a break point by clicking on the red dot. The dot will disappear, and the break point will be removed.
+
+![](images/hopr_ae05.png)
+
+Figure E.5: Break points provide the graphical equivalent of a browser statement.
+
+Break points and browser provide a great way to debug functions that you have defined. But what if you want to debug a function that already exists in R? You can do that with the debug function.
+
+**E.4 debug**
+
+You can \"add\" a browser call to the very start of a preexisting function with debug. To do this, run debug on the function. For example, you can run debug on sample with:
+
+debug(sample)
+
+Afterward, R will act as if there is a browser() statement in the first line of the function. Whenever R runs the function, it will immediately enter browser mode, allowing you to step through the function one line at a time. R will continue to behave this way until you \"remove\" the browser statement with undebug:
+
+undebug(sample)
+
+You can check whether a function is in \"debugging\" mode with isdebugged. This will return TRUE if you\'ve ran debug on the function but have yet to run undebug:
+
+isdebugged(sample)\
+\## FALSE
+
+If this is all too much of a hassle, you can do what I do and use debugonce instead of debug. R will enter browser mode the very next time it runs the function but will automatically undebug the function afterward. If you need to browse through the function again, you can just run debugonce on it a second time.
+
+You can recreate debugonce in RStudio whenever an error occurs. \"Rerun with debug\" will appear in the grey error box beneath Show Traceback (Figure [E.1](https://rstudio-education.github.io/hopr/debug.html#fig:show-traceback)). If you click this option, RStudio will rerun the command as if you had first run debugonce on it. R will immediately go into browser mode, allowing you to step through the code. The browser behavior will only occur on this run of the code. You do not need to worry about calling undebug when you are done.
+
+**E.5 trace**
+
+You can add the browser statement further into the function, and not at the very start, with trace. trace takes the name of a function as a character string and then an R expression to insert into the function. You can also provide an at argument that tells trace at which line of the function to place the expression. So to insert a browser call at the fourth line of sample, you would run:
+
+trace("sample", browser, at =4)
+
+You can use trace to insert other R functions (not just browser) into a function, but you may need to think of a clever reason for doing so. You can also run trace on a function without inserting any new code. R will prints trace:\<the function\> at the command line every time R runs the function. This is a great way to test a claim I made in [S3](https://rstudio-education.github.io/hopr/s3.html#s3), that R calls print every time it displays something at the command line:
+
+trace(print)\
+first\
+\## trace: print(function () second())\
+\## function() second()
+
+head(deck)\
+\## trace: print\
+##    face   suit value\
+\## 1  king spades    13\
+\## 2 queen spades    12\
+\## 3  jack spades    11\
+\## 4   ten spades    10\
+\## 5  nine spades     9\
+\## 6 eight spades     8
+
+You can revert a function to normal after calling trace on it with untrace:
+
+untrace(sample)\
+untrace(print)
+
+**E.6 recover**
+
+The recover function provides one final option for debugging. It combines the call stack of traceback with the browser mode of browser. You can use recover just like browser, by inserting it directly into a function\'s body.
+
+When R runs recover, it will pause and display the call stack, but that\'s not all. R gives you the option of opening a browser mode in any of the functions that appear in the call stack. Annoyingly, the call stack will be displayed upside down compared to traceback. The most recent function will be on the bottom, and the original function will be on the top.
+
+You can then proceed as normal. recover gives you a chance to inspect variables up and down your call stack and is a powerful tool for uncovering bugs. However, adding recover to the body of an R function can be cumbersome. Most R users use it as a global option for handling errors.
+
+If you run the following code, R will automatically call recover() whenever an error occurs:
+
+options(error =recover)
+
+This behavior will last until you close your R session, or reverse the behavior by calling:
+
+options(error =NULL)

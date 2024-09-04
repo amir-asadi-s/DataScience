@@ -1,0 +1,110 @@
+---
+title: "6 Workflow: scripts and projects"
+format: html
+editor: visual
+---
+
+This chapter will introduce you to two essential tools for organizing your code: scripts and projects.
+
+## 6.1 Scripts
+
+Open it up by clicking the File menu, selecting New File, then R script, or using the keyboard shortcut Cmd/Ctrl + Shift + N. Now you'll see four panes, as in [Figure 6.1](https://r4ds.hadley.nz/workflow-scripts#fig-rstudio-script).
+
+### 6.1.1 Running code
+
+the most important keyboard shortcuts: Cmd/Ctrl + Enter. This executes the current R expression in the console.
+
+Instead of running your code expression-by-expression, you can also execute the complete script in one step with Cmd/Ctrl + Shift + S.
+
+We recommend you always start your script with the packages you need. That way, if you share your code with others, they can easily see which packages they need to install.
+
+### 6.1.2 RStudio diagnostics
+
+In the script editor, RStudio will highlight syntax errors with a red squiggly line and a cross in the sidebar:
+
+![](images/rstudio-diagnostic.png)
+
+### 6.1.3 Saving and naming
+
+Three important principles for file naming are as follows:
+
+1.  File names should be **machine** readable: avoid spaces, symbols, and special characters. Don't rely on case sensitivity to distinguish files.
+
+2.  File names should be **human** readable: use file names to describe what's in the file.
+
+3.  File names should play well with default ordering: start file names with numbers so that alphabetical sorting puts them in the order they get used.
+
+```         
+Numbering the key scripts make it obvious in which order to run them and a consistent naming scheme makes it easier to see what varies. Additionally, the figures are labelled similarly, the reports are distinguished by dates included in the file names, and `temp` is renamed to `report-draft-notes`
+to better describe its contents. If you have a lot of files in a directory, taking organization one step further and placing different types of files (scripts, figures, etc.) in different directories is recommended.
+```
+
+## 6.2 Projects
+
+To handle these real life situations, you need to make two decisions:
+
+1.  What is the source of truth? What will you save as your lasting record of what happened?
+
+2.  Where does your analysis live?
+
+### 6.2.1 What is the source of truth?
+
+To help keep your R scripts as the source of truth for your analysis, we highly recommend that you instruct RStudio not to preserve your workspace between sessions. You can do this either by running `usethis::use_blank_slate()`^[2](https://r4ds.hadley.nz/workflow-scripts#fn2)^ or by mimicking the options shown in [Figure 6.2](https://r4ds.hadley.nz/workflow-scripts#fig-blank-slate).
+
+```{r}
+usethis::use_blank_slate()
+```
+
+There is a great pair of keyboard shortcuts that will work together to make sure you\'ve captured the important parts of your code in the editor:
+
+1.   Press Cmd/Ctrl + Shift + 0/F10 to restart R.
+
+2.   Press Cmd/Ctrl + Shift + S to re-run the current script.
+
+We collectively use this pattern hundreds of times a week.
+
+### 6.2.2 Where does your analysis live?
+
+R has a powerful notion of the **working directory**. RStudio shows your current working directory at the top of the console:
+
+![](images/rstudio-wd.png)
+
+You can set the working directory from within R but **we** **do not recommend it**:
+
+```{r}
+setwd()
+```
+
+There\'s a better way; a way that also puts you on the path to managing your R work like an expert. That way is the **RStudio** **project**.
+
+### 6.2.3 RStudio projects
+
+Keeping all the files associated with a given project (input data, R scripts, analytical results, and figures) together in one directory is such a wise and common practice that RStudio has built-in support for
+this via **projects**.
+
+Click File \> New Project
+
+### 6.2.4 Relative and absolute paths
+
+Once you\'re inside a project, you should only ever use relative paths not absolute paths.
+
+A relative path is relative to the working directory, i.e. the project\'s home.
+
+This is why relative paths are important: they\'ll work regardless of where the R project folder ends up.
+
+Absolute paths point to the same place regardless of your working directory. You should **never**
+use absolute paths in your scripts, because they hinder sharing: no one else will have exactly the same directory configuration as you.
+
+There\'s another important difference between operating systems: how you separate the components of the path. Mac and Linux uses slashes (e.g., `data/diamonds.csv`) and Windows uses backslashes (e.g., `data\diamonds.csv`).
+
+## 6.4 Summary
+
+In this chapter, you\'ve learned how to organize your R code in scripts (files) and projects (directories).
+
+In summary, scripts and projects give you a solid workflow that will serve you well in the future:
+
+-    Create one RStudio project for each data analysis project.
+
+-    Save your scripts (with informative names) in the project, edit them, run them in bits or as a whole. Restart R frequently to make sure you\'ve captured everything in your scripts.
+
+-    Only ever use relative paths, not absolute paths.
