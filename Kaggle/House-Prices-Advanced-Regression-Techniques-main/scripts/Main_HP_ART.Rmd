@@ -1,0 +1,3747 @@
+---
+title: "House Prices - Advanced Regression Techniques"
+author: "Amir"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include = FALSE}
+# rmarkdown Setting
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## **DATA SCIENCE COURSE - FINAL PROJECT**
+
+### **House Prices - Advanced Regression Techniques**
+
+### **Part 1: Project Description and Business Understanding**
+
+#### **1.1 Project Objective**
+
+The primary objective of this project is to accurately predict the sale prices of residential homes in Ames, Iowa, based on a dataset containing 79 explanatory variables. These variables capture a wide range of home attributes, providing a comprehensive view of factors that might influence a property's market value.
+
+This dataset was specifically constructed for an end-of-semester project in an undergraduate regression course, utilizing data originally obtained from the Ames Assessor's Office. While the data is typically used for tax assessments, it also provides a valuable resource for modeling and predicting home selling prices.
+
+#### **1.2 Potential Applications of the Project**
+
+The output of this project has practical applications in real estate and tax assessment. By leveraging the predictive model, stakeholders can estimate the final selling price of homes in Ames, Iowa, with greater accuracy. This can assist home buyers in making informed purchasing decisions and enable the Ames Assessor's Office to refine their property tax assessments.
+
+#### **1.3 Target Audience**
+
+The results of this project are particularly valuable to two primary groups:
+
+-   **Home Buyers:** The insights derived from the model can help prospective home buyers understand the factors that influence home prices, allowing them to make more informed decisions when purchasing property.
+
+-   **Ames Assessor's Office:** The predictive model can enhance the accuracy of property valuations, contributing to fairer and more precise tax assessments.
+
+### **Required Libraries**
+
+```{r Required Libraries}
+# Load necessary libraries for data preprocessing, visualization, and modeling
+library("ggplot2")      # Data visualization
+library("moments")      # Statistical moments (skewness, kurtosis) and tests
+library("MASS")         # Box-Cox transformations for linear models
+library("dplyr")        # Data manipulation and transformation
+library("visdat")       # Enhanced data visualization
+library("corrplot")     # Visualization of correlation matrices
+library("caret")        # General machine learning tasks
+library("recipes")      # Feature engineering and preprocessing
+library("car")          # Regression diagnostics and calculations
+library("leaps")        # Regression subset selection
+library("vip")          # Visualization of variable importance
+library("glmnet")       # Lasso and Elastic-Net regularized GLM
+library("rpart")        # Decision trees for classification and regression
+library("rpart.plot")   # Visualization of decision trees
+library("randomForest") # Random forests for classification and regression
+library("gbm")        #For implementing Generalized Boosted Regression Models 
+library("xgboost")    #For implementing eXtreme Gradient Boosting 
+
+```
+
+These libraries are essential for various stages of the data science workflow, from data preprocessing and exploration to model building and evaluation. Each library serves a specific purpose:
+
+-   **Data Preprocessing and Exploration**: Libraries like `dplyr`, `ggplot2`, and `visdat` help in cleaning, transforming, and visualizing the data.
+
+-   **Statistical Analysis and Transformations**: `moments`, `MASS`, and `car` are useful for statistical tests, transformations, and regression diagnostics.
+
+-   **Modeling and Evaluation**: `caret`, `glmnet`, `rpart`, `randomForest`, and `leaps` provide tools for building and tuning various machine learning models, including linear regression, regularization methods, decision trees, and random forests.
+
+-   **Feature Engineering**: `recipes` aids in creating and transforming features for modeling.
+
+-   **Model Interpretation**: `vip` is used to visualize and interpret the importance of variables in predictive models.
+
+## **Part 2: Data Inspection**
+
+### **2.1 Load Data From Source**
+
+I begin by loading the Kaggle datasets (train and test) that contain house prices and associated features.
+
+```{r read data from file}
+# Set working directory
+# setwd()
+
+# Read main data from csv files
+kaggle_train <- read.csv("data/train.csv", header = TRUE)
+kaggle_test <- read.csv("data/test.csv", header = TRUE)
+
+# Dimension of data
+dim(kaggle_train)
+dim(kaggle_test)
+```
+
+### **Observation:**
+
+-   The training dataset contains 81 features, including the target variable `SalePrice`.
+
+-   The test dataset contains 80 features, missing the `SalePrice` column, which is expected since it is our target variable.
+
+-   We will use `kaggle_train` for model training and evaluation.
+
+### **2.2 Data Combination for Inspection**
+
+To facilitate comprehensive data inspection, we combine the training and test datasets into one consolidated dataset called `total_data`.
+
+```{r combine kaggle s train and test dataset }
+# Add SalePrice column to kaggle_test for uniformity
+kaggle_test$SalePrice <- rep(0, 1459)
+head(kaggle_test)
+dim(kaggle_test)
+
+# Combine train and test datasets
+total_data <- rbind(kaggle_train, kaggle_test)
+dim(total_data)
+```
+
+### **2.3 Data Origin and Collection**
+
+The Ames Housing dataset was created by Dean De Cock for educational purposes in data science. It originates from the Ames Assessor's Office and covers property sales in Ames, Iowa, from 2006 to 2010. Initially, the dataset contained 113 variables, but De Cock reduced it to 81 variables relevant to property sales, categorized as nominal, ordinal, continuous, and discrete.
+
+### **2.4 Variable Descriptions**
+
+To understand the data structure, we inspect the first and last rows of the dataset and obtain a list of all variable names.
+
+```{r Total Data Set Overview}
+# Overview of the dataset
+head(total_data)
+tail(total_data)
+
+# Get column names
+colnames(total_data)
+
+# Structure of the raw dataset
+str(total_data)
+```
+
+**Data Description:**\
+A file (`Data_Description_xl.xlsx`) containing detailed descriptions and data types for each variable was created, which will guide further analysis.
+
+```{r load edited Data Description}
+# Load the edited data description file
+Data_Description <- readxl::read_xlsx("data/Data_Description_xl.xlsx", )
+Data_Description <- as.data.frame(Data_Description)
+# view(Data_Description)
+```
+
+```{r What do each of variables measure? }
+Data_Description[, c(2, 3)]
+```
+
+### **2.5 Data Ambiguity and Measurement Errors**
+
+-   **Ambiguities:** The data collection process is not fully described, and some features have instances marked as `NA`, which are not missing according to the description.
+
+-   **Possible Errors:** The data's origin from the Assessor's Office raises questions about the exact collection methods, such as whether it involved taxpayer self-declarations or official assessments.
+
+### **2.6 Potential Additional Variables**
+
+Additional variables that could improve model accuracy were removed due to their complexity. Adjusting sale prices for inflation and considering economic events like the 2008 crisis could enhance the model.
+
+### **2.7 Variable Types**
+
+We categorize the variables into quantitative and qualitative types:
+
+```{r Quantitative and Qualitative variables }
+# Labeled  data types in Data_Description data frame / chunk :'load edited Data Description'
+
+# Quantitative Variables
+quan_var <- Data_Description[Data_Description$Q_Type == "Quantitative" &
+  Data_Description$index != 1, "ftr_name"]
+quan_var
+
+# Number of Quantitative variable
+length(quan_var)
+
+# Qualitative Variables
+qual_var <- Data_Description[Data_Description$Q_Type == "Qualitative", "ftr_name"]
+qual_var
+
+# Number of Qualitative variable
+length(qual_var)
+```
+
+The data has 81 columns which include 23 nominal, 23 ordinal, 14 discrete, and 20 continuous variables (and 1 additional observation identifier).
+
+There are 1460 instances of training data and 1459 of test data that downloaded from kaggle website.The total number of attributes equals 81, of which 34 are Quantitative, 46 are Qualitative + Id, and SalePrice.
+
+#### Numerical and Categorical:
+
+```{r Numerical and Categorical }
+# Categorical Variables
+cat_var <- Data_Description[Data_Description$C_Type == "Categorical", "ftr_name"]
+cat_var
+
+# Number of categorical variable
+length(cat_var)
+
+# Numerical Variables
+cont_var <- Data_Description[Data_Description$C_Type == "Numerical" &
+  Data_Description$index != 1, "ftr_name"]
+cont_var
+
+# Number of numerical variable
+length(cont_var)
+```
+
+Total number of attributes equals 81, of which 46 is categorical, 34 is numerical + Id and SalePrice.
+
+#### Set name of main data:
+
+As Project description I can use kaggle's train data as main data for train and evaluating ML Models.
+
+```{r set name of main data }
+data <- kaggle_train
+dim(data)
+```
+
+### **2.8 Statistical Summary**
+
+#### **2.8.1 Univariate Profiling**
+
+I generate statistical summaries and visualizations for categorical and continuous variables:
+
+```{r statistical summary of variables_1}
+# Summary for categorical variables
+summary(data[cat_var])
+
+# Summary for continuous variables
+summary(data[cont_var])
+```
+
+```{r Id}
+# check unique Id
+dim(data)
+length(unique(data$Id))
+```
+
+There is no redundant data according to Id
+
+#### **2.8.2 Visualization**
+
+Boxplots and histograms help visualize the distribution of continuous variables.
+
+```{r continues variables - boxplot_1}
+# # Boxplot of continuous variables
+par(mar = c(2, 2, 2, 2))
+par(mfrow = c(3, 4)) # 3 rows and 4 columns
+
+cont_var_1 <- cont_var[1:12]
+cont_var_2 <- cont_var[13:24]
+cont_var_3 <- cont_var[25:34]
+
+for (i in cont_var_1) {
+  boxplot(data[, i],
+    xlab = "",
+    main = paste("Boxplot of ", i)
+  )
+}
+
+for (i in cont_var_2) {
+  boxplot(data[, i],
+    xlab = "",
+    main = paste("Boxplot of ", i)
+  )
+}
+
+for (i in cont_var_3) {
+  boxplot(data[, i],
+    xlab = "",
+    main = paste("Boxplot of ", i)
+  )
+}
+
+par(mfrow = c(1, 1))
+```
+
+```{r continuous variables - Histogram_1}
+# Histogrtam of continuous variables
+par(mar = c(2, 2, 2, 2))
+par(mfrow = c(3, 4)) # 3 rows and 4 columns
+
+for (i in cont_var_1) {
+  hist(data[, i], xlab = "", main = paste("Histogram of ", i))
+}
+
+for (i in cont_var_2) {
+  hist(data[, i], xlab = "", main = paste("Histogram of ", i))
+}
+
+for (i in cont_var_3) {
+  hist(data[, i], xlab = "", main = paste("Histogram of ", i))
+}
+
+par(mfrow = c(1, 1))
+```
+
+Barplots help visualize the distribution of categorical variables.
+
+```{r barplot of categorical variables_1}
+# barplot of categorical variables
+par(mar = c(2, 2, 2, 2))
+par(mfrow = c(3, 4)) # 3 rows and 4 columns
+
+cat_var_1 <- cat_var[1:12]
+cat_var_2 <- cat_var[13:24]
+cat_var_3 <- cat_var[25:36]
+cat_var_4 <- cat_var[37:46]
+
+for (i in cat_var_1) {
+  barplot(table(data[, i]), xlab = "", main = paste("Barplot of ", i))
+}
+
+for (i in cat_var_2) {
+  barplot(table(data[, i]), xlab = "", main = paste("Barplot of ", i))
+}
+
+for (i in cat_var_3) {
+  barplot(table(data[, i]), xlab = "", main = paste("Barplot of ", i))
+}
+
+for (i in cat_var_4) {
+  barplot(table(data[, i]), xlab = "", main = paste("Barplot of ", i))
+}
+par(mfrow = c(1, 1))
+```
+
+#### **2.8.3 Response Variable Analysis**
+
+The target variable `SalePrice` is analyzed for distribution, outliers, and normality.
+
+```{r SalePrice}
+# Summary statistics and histogram of SalePrice
+summary(data$SalePrice)
+
+# Missing Values
+sum(is.na(data$SalePrice))
+## good News :No missing values and zeros
+## min = 34900, max = 755000
+
+# Distribution of SalePrice
+# histogram
+hist(data$SalePrice, breaks = 20)
+# Right skewed data
+
+mean(data$SalePrice, na.rm = T)
+median(data$SalePrice, na.rm = T)
+## Right Skewed Data
+
+# boxplot
+boxplot(data$SalePrice)
+
+## Quantiles for Sales Price
+quantile(data$SalePrice)
+
+# Tukey Method - outlier detection
+# x > q(0.75) + 1.5 * IQR(x)
+# x < q(0.25) - 1.5 * IQR(x)
+low_outlier <- quantile(data$SalePrice, 0.25) - 1.5 * IQR(data$SalePrice)
+data[data$SalePrice < low_outlier, 1]
+# There is no low oulier based on tukey method and uni variate
+
+high_outlier <- quantile(data$SalePrice, 0.75) + 1.5 * IQR(data$SalePrice)
+data[data$SalePrice > high_outlier, c("Id", "SalePrice")]
+sum(data$SalePrice > high_outlier)
+high_outlier
+# There are 61 high oulier based on tukey method and uni variate (SalePrice more than 340037.5 $$)
+
+# SalePrice more than 400,000 $
+sum(data$SalePrice > 450000)
+```
+
+```{r Test of Normality Response Value }
+# Test of Normality
+
+# Histogram
+hist(data$SalePrice, probability = T, breaks = 15)
+lines(density(data$SalePrice), col = "red")
+
+# QQ-plot
+qqnorm(data$SalePrice, main = "QQ Plot of SalePrice", pch = 20)
+qqline(data$SalePrice, col = "red")
+
+# Test for Skewness and Kurtosis
+
+# Jarque-Bera Test (H0: Skewness = 0 ?)
+# p-value < 0.05 reject normality assumption
+jarque.test(data$SalePrice)
+
+# Anscombe-Glynn Test (H0: Kurtosis = 3 ?)
+# p-value < 0.05 reject normality assumption
+anscombe.test(data$SalePrice)
+
+## Conclusion: reject normality assumption
+```
+
+**Conclusion:** The `SalePrice` distribution is right-skewed, and log transformation improves its normality.
+
+### **2.9 Missing Values**
+
+I perform a primary check for missing values and inspect specific cases.
+
+```{r primary checking of missing values}
+# Summary of missing values
+mv_summary <- data.frame("variable_names" = colnames(total_data))
+mv_summary$mvs_freq <- apply(total_data, 2, function(x) sum(is.na(x)))
+mv_summary$mvs_percent <- round(mv_summary$mvs_freq / nrow(total_data), 3) * 100
+# view(mv_summary)
+```
+
+Check PoolQc missing values
+
+```{r PoolQc missing value check}
+head(total_data[is.na(total_data$PoolQC) == T, c("PoolQC", "PoolArea")])
+tail(total_data[is.na(total_data$PoolQC) == T, c("PoolQC", "PoolArea")])
+```
+
+After check the missing value pattern and their feature description, I found that In some features, variables assigned as Na, while in description they are not missing value.
+
+Check GarageType missing values
+
+```{r Garage Type missing value}
+head(total_data[
+  is.na(total_data$GarageType) == T,
+  c("GarageType", "GarageArea", "GarageCars", "GarageYrBlt")
+])
+tail(total_data[
+  is.na(total_data$GarageType) == T,
+  c("GarageType", "GarageArea", "GarageCars", "GarageYrBlt")
+])
+```
+
+###### Conclusion:
+
+Digging a little deeper into these variables, we might notice that Garage_Cars and Garage_Area contain the value 0 whenever the other Garage_xx variables have missing values (i.e. a value of NA). This might be because they did not have a way to identify houses with no garages when the data were originally collected, and therefore, all houses with no garage were identified by including nothing. Since this missingness is informative, it would be appropriate to impute NA with a new category level (e.g., "None") for these garage variables.
+
+##### visualization of missing data patterns
+
+visualization of missing data patterns (with sorting and clustering options) by visdat::vis_miss
+
+```{r visualization of missing data patterns}
+vis_miss(data, cluster = TRUE)
+
+# Missing values (i.e., NA) are indicated via a black cell. The variables and NA patterns have been clustered by rows (i.e., cluster = TRUE).
+```
+
+**Conclusion:** Some `NA` values are informative and should be imputed with appropriate categories (e.g., "None" for `GarageType`).
+
+### **2.10 Data Transformation and Cleaning**
+
+I define functions to process and clean the data, ensuring correct factor levels and handling missing values.Define a Process_raw_data function for:
+
+1- assign complete description for instances
+
+2- correcting missing values based on description
+
+3- apply factor to categorical data
+
+4- apply some data set correction with modifying codes of AmesHousing::make_ames()
+
+```{r define process_raw_data function}
+# Function to process raw data
+Process_raw_data <- function(raw) {
+  out <- raw %>%
+    # Remove leading zeros
+    dplyr::mutate(
+      MSSubClass = as.character(as.integer(MSSubClass))
+    ) %>%
+    # Make more meaningful factor levels for some variables
+    dplyr::mutate(
+      MSSubClass =
+        dplyr::recode_factor(
+          factor(MSSubClass),
+          "20" = "One_Story_1946_and_Newer_All_Styles",
+          "30" = "One_Story_1945_and_Older",
+          "40" = "One_Story_with_Finished_Attic_All_Ages",
+          "45" = "One_and_Half_Story_Unfinished_All_Ages",
+          "50" = "One_and_Half_Story_Finished_All_Ages",
+          "60" = "Two_Story_1946_and_Newer",
+          "70" = "Two_Story_1945_and_Older",
+          "75" = "Two_and_Half_Story_All_Ages",
+          "80" = "Split_or_Multilevel",
+          "85" = "Split_Foyer",
+          "90" = "Duplex_All_Styles_and_Ages",
+          "120" = "One_Story_PUD_1946_and_Newer",
+          "150" = "One_and_Half_Story_PUD_All_Ages",
+          "160" = "Two_Story_PUD_1946_and_Newer",
+          "180" = "PUD_Multilevel_Split_Level_Foyer",
+          "190" = "Two_Family_conversion_All_Styles_and_Ages"
+        )
+    ) %>%
+    dplyr::mutate(
+      MSZoning =
+        dplyr::recode_factor(
+          factor(MSZoning),
+          "A" = "Agriculture",
+          "C" = "Commercial",
+          "FV" = "Floating_Village_Residential",
+          "I" = "Industrial",
+          "RH" = "Residential_High_Density",
+          "RL" = "Residential_Low_Density",
+          "RP" = "Residential_Low_Density_Park",
+          "RM" = "Residential_Medium_Density",
+          "A (agr)" = "A_agr",
+          "C (all)" = "C_all",
+          "I (all)" = "I_all"
+        )
+    ) %>%
+    dplyr::mutate(
+      LotShape =
+        dplyr::recode_factor(
+          factor(LotShape),
+          "Reg" = "Regular",
+          "IR1" = "Slightly_Irregular",
+          "IR2" = "Moderately_Irregular",
+          "IR3" = "Irregular"
+        )
+    ) %>%
+    dplyr::mutate(
+      BldgType =
+        dplyr::recode_factor(factor(BldgType),
+          "1Fam" = "OneFam",
+          "2fmCon" = "TwoFmCon"
+        )
+    ) %>%
+    # Change some factor levels so that they make valid R variable names
+    dplyr::mutate(
+      HouseStyle = gsub("1.5", "One_and_Half_", HouseStyle),
+      HouseStyle = gsub("1", "One_", HouseStyle),
+      HouseStyle = gsub("2.5", "Two_and_Half_", HouseStyle),
+      HouseStyle = gsub("2", "Two_", HouseStyle),
+      HouseStyle = factor(HouseStyle)
+    ) %>%
+    # Some characteristics that houses lack (e.g. garage, pool) are
+    # coded as missing instead of "No_pool" or "No_Garage". Change these
+    # and also cases where the number of missing (e.g. garage size)
+    dplyr::mutate(
+      BsmtExposure = ifelse(is.na(BsmtExposure), "No_Basement", BsmtExposure),
+      BsmtExposure = factor(BsmtExposure),
+      BsmtFinType1 = ifelse(is.na(BsmtFinType1), "No_Basement", BsmtFinType1),
+      BsmtFinType1 = factor(BsmtFinType1),
+      BsmtFinSF1 = ifelse(is.na(BsmtFinSF1), 0, BsmtFinSF1),
+      BsmtFinType2 = ifelse(is.na(BsmtFinType2), "No_Basement", BsmtFinType2),
+      BsmtFinType2 = factor(BsmtFinType2),
+      BsmtFinSF2 = ifelse(is.na(BsmtFinSF2), 0, BsmtFinSF2),
+      BsmtUnfSF = ifelse(is.na(BsmtUnfSF), 0, BsmtUnfSF),
+      TotalBsmtSF = ifelse(is.na(TotalBsmtSF), 0, TotalBsmtSF),
+      BsmtFullBath = ifelse(is.na(BsmtFullBath), 0, BsmtFullBath),
+      BsmtHalfBath = ifelse(is.na(BsmtHalfBath), 0, BsmtHalfBath),
+      Electrical = ifelse(is.na(Electrical), "Unknown", Electrical),
+    ) %>%
+    dplyr::mutate(
+      GarageType =
+        dplyr::recode(GarageType,
+          "2Types" = "More_Than_Two_Types"
+        )
+    ) %>%
+    dplyr::mutate(
+      GarageType = ifelse(is.na(GarageType), "No_Garage", GarageType),
+      GarageFinish = ifelse(is.na(GarageFinish), "No_Garage", GarageFinish),
+      GarageCars = ifelse(is.na(GarageCars), 0, GarageCars),
+      GarageArea = ifelse(is.na(GarageArea), 0, GarageArea),
+      BsmtFullBath = ifelse(is.na(BsmtFullBath), 0, BsmtFullBath),
+      BsmtHalfBath = ifelse(is.na(BsmtHalfBath), 0, BsmtHalfBath),
+      MiscFeature = ifelse(is.na(MiscFeature), "None", MiscFeature),
+      MasVnrType = ifelse(is.na(MasVnrType), "None", MasVnrType),
+      MasVnrArea = ifelse(is.na(MasVnrArea), 0, MasVnrArea),
+      LotFrontage = ifelse(is.na(LotFrontage), 0, LotFrontage)
+    ) %>%
+    mutate(
+      OverallQual =
+        dplyr::recode(
+          OverallQual,
+          `10` = "Very_Excellent",
+          `9` = "Excellent",
+          `8` = "Very_Good",
+          `7` = "Good",
+          `6` = "Above_Average",
+          `5` = "Average",
+          `4` = "Below_Average",
+          `3` = "Fair",
+          `2` = "Poor",
+          `1` = "Very_Poor"
+        )
+    ) %>%
+    mutate(
+      OverallCond =
+        dplyr::recode(
+          OverallCond,
+          `10` = "Very_Excellent",
+          `9` = "Excellent",
+          `8` = "Very_Good",
+          `7` = "Good",
+          `6` = "Above_Average",
+          `5` = "Average",
+          `4` = "Below_Average",
+          `3` = "Fair",
+          `2` = "Poor",
+          `1` = "Very_Poor"
+        )
+    ) %>%
+    mutate(
+      ExterQual =
+        dplyr::recode(
+          ExterQual,
+          "Ex" = "Excellent",
+          "Gd" = "Good",
+          "TA" = "Typical",
+          "Fa" = "Fair",
+          "Po" = "Poor"
+        )
+    ) %>%
+    mutate(
+      ExterCond =
+        dplyr::recode(
+          ExterCond,
+          "Ex" = "Excellent",
+          "Gd" = "Good",
+          "TA" = "Typical",
+          "Fa" = "Fair",
+          "Po" = "Poor"
+        )
+    ) %>%
+    mutate(
+      BsmtQual =
+        dplyr::recode(
+          BsmtQual,
+          "Ex" = "Excellent",
+          "Gd" = "Good",
+          "TA" = "Typical",
+          "Fa" = "Fair",
+          "Po" = "Poor",
+          .missing = "No_Basement"
+        )
+    ) %>%
+    mutate(
+      BsmtCond =
+        dplyr::recode(
+          BsmtCond,
+          "Ex" = "Excellent",
+          "Gd" = "Good",
+          "TA" = "Typical",
+          "Fa" = "Fair",
+          "Po" = "Poor",
+          .missing = "No_Basement"
+        )
+    ) %>%
+    mutate(
+      HeatingQC =
+        dplyr::recode(
+          HeatingQC,
+          "Ex" = "Excellent",
+          "Gd" = "Good",
+          "TA" = "Typical",
+          "Fa" = "Fair",
+          "Po" = "Poor"
+        )
+    ) %>%
+    mutate(
+      KitchenQual =
+        dplyr::recode(
+          KitchenQual,
+          "Ex" = "Excellent",
+          "Gd" = "Good",
+          "TA" = "Typical",
+          "Fa" = "Fair",
+          "Po" = "Poor"
+        )
+    ) %>%
+    mutate(
+      FireplaceQu =
+        dplyr::recode(
+          FireplaceQu,
+          "Ex" = "Excellent",
+          "Gd" = "Good",
+          "TA" = "Typical",
+          "Fa" = "Fair",
+          "Po" = "Poor",
+          .missing = "No_Fireplace"
+        )
+    ) %>%
+    mutate(
+      GarageQual =
+        dplyr::recode(
+          GarageQual,
+          "Ex" = "Excellent",
+          "Gd" = "Good",
+          "TA" = "Typical",
+          "Fa" = "Fair",
+          "Po" = "Poor",
+          .missing = "No_Garage"
+        )
+    ) %>%
+    mutate(
+      GarageCond =
+        dplyr::recode(
+          GarageCond,
+          "Ex" = "Excellent",
+          "Gd" = "Good",
+          "TA" = "Typical",
+          "Fa" = "Fair",
+          "Po" = "Poor",
+          .missing = "No_Garage"
+        )
+    ) %>%
+    mutate(
+      PoolQC =
+        dplyr::recode(
+          PoolQC,
+          "Ex" = "Excellent",
+          "Gd" = "Good",
+          "TA" = "Typical",
+          "Fa" = "Fair",
+          "Po" = "Poor",
+          .missing = "No_Pool"
+        )
+    ) %>%
+    mutate(
+      Neighborhood =
+        dplyr::recode(
+          Neighborhood,
+          "Blmngtn" = "Bloomington_Heights",
+          "Blueste" = "Bluestem",
+          "BrDale" = "Briardale",
+          "BrkSide" = "Brookside",
+          "ClearCr" = "Clear_Creek",
+          "CollgCr" = "College_Creek",
+          "Crawfor" = "Crawford",
+          "Edwards" = "Edwards",
+          "Gilbert" = "Gilbert",
+          "Greens" = "Greens",
+          "GrnHill" = "Green_Hills",
+          "IDOTRR" = "Iowa_DOT_and_Rail_Road",
+          "Landmrk" = "Landmark",
+          "MeadowV" = "Meadow_Village",
+          "Mitchel" = "Mitchell",
+          "NAmes" = "North_Ames",
+          "NoRidge" = "Northridge",
+          "NPkVill" = "Northpark_Villa",
+          "NridgHt" = "Northridge_Heights",
+          "NWAmes" = "Northwest_Ames",
+          "OldTown" = "Old_Town",
+          "SWISU" = "South_and_West_of_Iowa_State_University",
+          "Sawyer" = "Sawyer",
+          "SawyerW" = "Sawyer_West",
+          "Somerst" = "Somerset",
+          "StoneBr" = "Stone_Brook",
+          "Timber" = "Timberland",
+          "Veenker" = "Veenker",
+          "Hayden Lake" = "Hayden_Lake"
+        )
+    ) %>%
+    mutate(
+      Alley =
+        dplyr::recode(
+          Alley,
+          "Grvl" = "Gravel",
+          "Pave" = "Paved",
+          .missing = "No_Alley_Access"
+        )
+    ) %>%
+    mutate(
+      PavedDrive =
+        dplyr::recode(
+          PavedDrive,
+          "Y" = "Paved",
+          "P" = "Partial_Pavement",
+          "N" = "Dirt_Gravel"
+        )
+    ) %>%
+    mutate(
+      Fence =
+        dplyr::recode(
+          Fence,
+          "GdPrv" = "Good_Privacy",
+          "MnPrv" = "Minimum_Privacy",
+          "GdWo" = "Good_Wood",
+          "MnWw" = "Minimum_Wood_Wire",
+          .missing = "No_Fence"
+        )
+    ) %>%
+    # Convert everything else to factors
+    dplyr::mutate(
+      Alley = factor(Alley),
+      BsmtQual = factor(BsmtQual),
+      BsmtCond = factor(BsmtCond),
+      CentralAir = factor(CentralAir),
+      Condition1 = factor(Condition1),
+      Condition2 = factor(Condition2),
+      Electrical = factor(Electrical),
+      ExterCond = factor(ExterCond),
+      ExterQual = factor(ExterQual),
+      Exterior1st = factor(Exterior1st),
+      Exterior2nd = factor(Exterior2nd),
+      Fence = factor(Fence),
+      FireplaceQu = factor(FireplaceQu),
+      Foundation = factor(Foundation),
+      Functional = factor(Functional),
+      GarageCond = factor(GarageCond),
+      GarageFinish = factor(GarageFinish),
+      GarageQual = factor(GarageQual),
+      GarageType = factor(GarageType),
+      Heating = factor(Heating),
+      HeatingQC = factor(HeatingQC),
+      KitchenQual = factor(KitchenQual),
+      LandContour = factor(LandContour),
+      LandSlope = factor(LandSlope),
+      LotConfig = factor(LotConfig),
+      MasVnrType = factor(MasVnrType),
+      MiscFeature = factor(MiscFeature),
+      PavedDrive = factor(PavedDrive),
+      PoolQC = factor(PoolQC),
+      RoofMatl = factor(RoofMatl),
+      RoofStyle = factor(RoofStyle),
+      SaleCondition = factor(SaleCondition),
+      SaleType = factor(SaleType),
+      Street = factor(Street),
+      Utilities = factor(Utilities),
+      OverallQual = factor(OverallQual, levels = rev(ten_point)),
+      OverallCond = factor(OverallCond, levels = rev(ten_point)),
+      Neighborhood = factor(Neighborhood)
+    )
+
+  out
+}
+```
+
+Define a function to :
+
+1- correct orderliness of categorical data
+
+2- apply factor to remained categorical features
+
+(Modifying codes of AmesHousing::make_ames())
+
+```{r define make_ordinal_data function}
+# Define ten_Point variable to correct orderliness
+ten_point <- c(
+  "Very_Excellent",
+  "Excellent",
+  "Very_Good",
+  "Good",
+  "Above_Average",
+  "Average",
+  "Below_Average",
+  "Fair",
+  "Poor",
+  "Very_Poor"
+)
+
+# Define five_point variable to correct orderliness
+five_point <- c(
+  "Excellent",
+  "Good",
+  "Typical",
+  "Fair",
+  "Poor"
+)
+
+make_ordinal_data <- function(out) {
+  get_no <- function(x) {
+    grep("^No", levels(x), value = TRUE)
+  }
+
+
+  out$LotShape <- ordered(
+    as.character(out$LotShape),
+    levels = c(
+      "Irregular", "Moderately_Irregular",
+      "Slightly_Irregular", "Regular"
+    )
+  )
+  out$LandContour <- ordered(
+    as.character(out$LandContour),
+    levels = c("Low", "HLS", "Bnk", "Lvl")
+  )
+  out$Utilities <- ordered(
+    as.character(out$Utilities),
+    levels = c("ELO", "NoSeWa", "NoSewr", "AllPub")
+  )
+  out$LandSlope <- ordered(
+    as.character(out$LandSlope),
+    levels = c("Sev", "Mod", "Gtl")
+  )
+  out$OverallQual <- ordered(
+    as.character(out$OverallQual),
+    levels = rev(ten_point)
+  )
+  out$OverallCond <- ordered(
+    as.character(out$OverallCond),
+    levels = rev(ten_point)
+  )
+  out$ExterQual <- ordered(
+    as.character(out$ExterQual),
+    levels = rev(five_point)
+  )
+  out$ExterCond <- ordered(
+    as.character(out$ExterCond),
+    levels = rev(five_point)
+  )
+  out$BsmtQual <- ordered(
+    as.character(out$BsmtQual),
+    levels = c(get_no(out$BsmtQual), rev(five_point))
+  )
+  out$BsmtCond <- ordered(
+    as.character(out$BsmtCond),
+    levels = c(get_no(out$BsmtCond), rev(five_point))
+  )
+  out$BsmtExposure <- ordered(
+    as.character(out$BsmtExposure),
+    levels = c(
+      "No_Basement", "No", "Mn", "Av", "Gd"
+    )
+  )
+  out$BsmtFinType1 <- ordered(
+    as.character(out$BsmtFinType1),
+    levels = c(
+      "No_Basement", "Unf", "LwQ", "Rec", "BLQ", "ALQ", "GLQ"
+    )
+  )
+  out$BsmtFinType2 <- ordered(
+    as.character(out$BsmtFinType2),
+    levels = c(
+      "No_Basement", "Unf", "LwQ", "Rec", "BLQ", "ALQ", "GLQ"
+    )
+  )
+  out$HeatingQC <- ordered(
+    as.character(out$HeatingQC),
+    levels = rev(five_point)
+  )
+  out$Electrical <- ordered(
+    as.character(out$Electrical),
+    levels = c("Mix", "FuseP", "FuseF", "FuseA", "SBrkr", "Unknown")
+  )
+  out$KitchenQual <- ordered(
+    as.character(out$KitchenQual),
+    levels = rev(five_point)
+  )
+  out$Functional <- ordered(
+    as.character(out$Functional),
+    levels = c(
+      "Sal", "Sev", "Maj2", "Maj1", "Mod", "Min2", "Min1", "Typ"
+    )
+  )
+  out$FireplaceQu <- ordered(
+    as.character(out$FireplaceQu),
+    levels = c(get_no(out$FireplaceQu), rev(five_point))
+  )
+  out$GarageFinish <- ordered(
+    as.character(out$GarageFinish),
+    levels = c(get_no(out$GarageFinish), "Unf", "RFn", "Fin")
+  )
+  out$GarageQual <- ordered(
+    as.character(out$GarageQual),
+    levels = c(get_no(out$GarageQual), rev(five_point))
+  )
+  out$GarageCond <- ordered(
+    as.character(out$GarageCond),
+    levels = c(get_no(out$GarageCond), rev(five_point))
+  )
+  out$PavedDrive <- ordered(
+    as.character(out$PavedDrive),
+    levels = c("Dirt_Gravel", "Partial_Pavement", "Paved")
+  )
+  out$PoolQC <- ordered(
+    as.character(out$PoolQC),
+    levels = c(get_no(out$PoolQC), rev(five_point))
+  )
+  out$Fence <- ordered(
+    as.character(out$Fence),
+    levels = c(
+      "No_Fence", "Minimum_Wood_Wire", "Good_Wood",
+      "Minimum_Privacy", "Good_Privacy"
+    )
+  )
+  out
+}
+```
+
+### Data set Correction
+
+```{r Data set Correction}
+# Modifiy kaggle's train data set
+mdf_kaggle_train <- make_ordinal_data(Process_raw_data(kaggle_train))
+
+head(mdf_kaggle_train)
+tail(mdf_kaggle_train)
+str(mdf_kaggle_train)
+
+```
+
+As Project description we can use modified kaggle's train data as main data for train and evaluating ML Models.
+
+```{r set name of main data for creating ML Models}
+# define modified data as mdf_data
+mdf_data <- mdf_kaggle_train
+```
+
+### **2.11 Statistical Summary of Processed Data**
+
+After data transformation, we repeat the statistical summary and visualization for the modified dataset.
+
+```{r statistical summary of variables_2}
+# Data Statistical Summary of Categorical variables
+summary(mdf_data[cat_var])
+
+# Data Statistical Summary of Continuous variables
+summary(mdf_data[cont_var])
+```
+
+### 2.12 Discriptive Analysis
+
+**Draw Boxplot of continues variables of modified data set**
+
+```{r continues variables - boxplot_2}
+# BoxPlot
+par(mar = c(2, 2, 2, 2))
+par(mfrow = c(3, 4)) # 3 rows and 4 columns
+
+cont_var_1 <- cont_var[1:12]
+cont_var_2 <- cont_var[13:24]
+cont_var_3 <- cont_var[25:34]
+
+for (i in cont_var_1) {
+  boxplot(mdf_data[, i],
+    xlab = "",
+    main = paste("Boxplot of ", i)
+  )
+}
+
+for (i in cont_var_2) {
+  boxplot(mdf_data[, i],
+    xlab = "",
+    main = paste("Boxplot of ", i)
+  )
+}
+
+for (i in cont_var_3) {
+  boxplot(mdf_data[, i],
+    xlab = "",
+    main = paste("Boxplot of ", i)
+  )
+}
+
+par(mfrow = c(1, 1))
+```
+
+**Draw Histogram of continues variables of modified data set**
+
+```{r continuous variables - Histogram_2}
+# Histogrtam
+par(mar = c(2, 2, 2, 2))
+par(mfrow = c(3, 4)) # 3 rows and 4 columns
+
+for (i in cont_var_1) {
+  hist(mdf_data[, i], xlab = "", main = paste("Histogram of ", i))
+}
+
+for (i in cont_var_2) {
+  hist(mdf_data[, i], xlab = "", main = paste("Histogram of ", i))
+}
+
+for (i in cont_var_3) {
+  hist(mdf_data[, i], xlab = "", main = paste("Histogram of ", i))
+}
+
+par(mfrow = c(1, 1))
+```
+
+**Draw barplot of categorical variables of modified data set**
+
+```{r barplot of categorical variables_2}
+# barplot
+par(mar = c(2, 2, 2, 2))
+par(mfrow = c(3, 4)) # 3 rows and 4 columns
+
+cat_var_1 <- cat_var[1:12]
+cat_var_2 <- cat_var[13:24]
+cat_var_3 <- cat_var[25:36]
+cat_var_4 <- cat_var[37:46]
+
+for (i in cat_var_1) {
+  barplot(table(mdf_data[, i]), xlab = "", main = paste("Barplot of ", i))
+}
+
+for (i in cat_var_2) {
+  barplot(table(mdf_data[, i]), xlab = "", main = paste("Barplot of ", i))
+}
+
+for (i in cat_var_3) {
+  barplot(table(mdf_data[, i]), xlab = "", main = paste("Barplot of ", i))
+}
+
+for (i in cat_var_4) {
+  barplot(table(mdf_data[, i]), xlab = "", main = paste("Barplot of ", i))
+}
+
+par(mfrow = c(1, 1))
+```
+
+### **2.13 Bivariate Profiling**
+
+Scatter plots and correlation analysis reveal relationships between variables.
+
+```{r scatter plot for continues variables}
+# Scatter plot of continuous variables against SalePrice
+par(mar = c(2, 2, 2, 2))
+par(mfrow = c(3, 4)) # 3 rows and 4 columns
+
+for (i in cont_var_1) {
+  plot(
+    x = mdf_data[, i],
+    y = mdf_data$SalePrice,
+    xlab = i,
+    main = paste("SalePrice Vs. ", i)
+  )
+}
+
+for (i in cont_var_2) {
+  plot(
+    x = mdf_data[, i],
+    y = mdf_data$SalePrice,
+    xlab = i,
+    main = paste("SalePrice Vs. ", i)
+  )
+}
+
+for (i in cont_var_3) {
+  plot(
+    x = mdf_data[, i],
+    y = mdf_data$SalePrice,
+    xlab = i,
+    main = paste("SalePrice Vs. ", i)
+  )
+}
+
+par(mfrow = c(1, 1))
+
+# first continues feature selection list based on scatter plots for more evaluation
+cont_ftrs_select_1 <- cont_var[c(2, 6, 10, 13, 17, 19, 20, 26, 28, 29, 30, 32, 33)]
+cont_ftrs_select_1
+
+# add cont_ftrs_select_1 variables to Data_Description
+Data_Description$cont_ftrs_select_1 <-
+  ifelse(Data_Description$ftr_name %in% cont_ftrs_select_1, TRUE, FALSE)
+```
+
+### **2.14 Response Value Transformation**
+
+Log transformation of `SalePrice` was selected to reduce skewness, and Box-Cox transformation was considered.
+
+```{r Transforming SalePrice}
+# Rule of thumb :Transforming Skewed Data -> For right-skewed mdf_data: square root, cube root, and log
+
+# Log transformation of SalePrice--------------------
+log_SalePrice <- log(mdf_data$SalePrice)
+
+# Histogram
+hist(log_SalePrice, probability = T, breaks = 15)
+lines(density(log_SalePrice), col = "red")
+
+# QQ-plot
+qqnorm(log_SalePrice, main = "QQ Plot", pch = 20)
+qqline(log_SalePrice, col = "red")
+
+# Test for Skewness and Kurtosis
+# for sample size > 25
+
+# Jarque-Bera Test (Skewness = 0 ?)
+# p-value < 0.05 reject normality assumption
+jarque.test(log_SalePrice)
+
+# Anscombe-Glynn Test (Kurtosis = 3 ?)
+# p-value < 0.05 reject normality assumption
+anscombe.test(log_SalePrice)
+```
+
+**Conclusion:** The log transformation effectively reduces skewness.
+
+**Performing Box-Cox Transformation**
+
+```{r Box-Cox Transformation of SalePrice}
+# transformed_x = (x ^ lambda - 1) /lambda  if lambda <> 0
+# transformed_x =  log(x)                   if lambda = 0
+
+box_results <- boxcox(mdf_data$SalePrice ~ 1, lambda = seq(-5, 5, 0.1))
+box_results <- data.frame(box_results$x, box_results$y) # Create a data frame with the results
+lambda <- box_results[which(box_results$box_results.y == max(box_results$box_results.y)), 1]
+lambda
+```
+
+lambda equal - 0.1, but confident interval include zero, so I can set lambda as 0 and choose log transformation for SalePrice based on Box-Cox Transformation.
+
+**check other tranansformation methods**
+
+```{r check other tranansformation of SalePrice}
+# Other data transformations----------------------
+# Min-max scaling
+summary(mdf_data$SalePrice)
+hist(mdf_data$SalePrice, breaks = 20)
+
+mn_scaling <- function(x) (x - min(x)) / (max(x) - min(x))
+SalePrice_mn_scaled <- mn_scaling(mdf_data$SalePrice)
+summary(SalePrice_mn_scaled)
+hist(SalePrice_mn_scaled, breaks = 20)
+# Right Skewed
+
+# Z-score scaling
+SalePrice_z_scaled <- scale(mdf_data$SalePrice)
+summary(SalePrice_z_scaled)
+hist(SalePrice_z_scaled, breaks = 20)
+# Right Skewed
+```
+
+select log transformation for sale price to close its distribution to normality. Using a log transformed Sale Price response means that errors in predicting expensive houses and cheap houses will affect the result equally.
+
+#### **2.15 Outlier Handling**
+
+Outliers in `SalePrice` and other key features are identified and removed to improve model performance.
+
+```{r remove log(SalePrice) Outliers}
+
+# SalePrice outlier based on tukey method
+high_outlier
+
+sum(mdf_data$SalePrice > high_outlier)
+
+table(mdf_data$SaleCondition)
+
+#Remove SalePrice outliers, based on SaleType
+mdf_data[(mdf_data$SalePrice > high_outlier), c("Id", "SaleCondition", "SalePrice")]
+
+boxplot(mdf_data$SalePrice  ~ mdf_data$SaleCondition)
+
+dim(mdf_data)
+
+# According to boxplot of SalePrice over SaleCondition, delete SalePrice more than  450,000
+mdf_data[(mdf_data$SalePrice > 450000) , c("Id","SaleCondition", "SalePrice")]
+
+# Remove SalePrice Outliers > 450,000
+mdf_data <- mdf_data[ -which(mdf_data$Id %in% c(179, 186, 441, 592, 692, 770,
+                                                 799, 804, 899, 1047, 1170, 
+                                                 1183, 1244, 1374)), ]
+dim(mdf_data)
+
+boxplot(mdf_data$SalePrice  ~ mdf_data$SaleCondition)
+
+# SalePrice ouliers basded on GrLivArea vs. SalePrice scatter plot
+mdf_data[mdf_data$GrLivArea > 4000, c("Id", "GrLivArea", "SalePrice")]
+
+# Delete outliers based on GrLivArea vs. SalePrice scatter plot
+mdf_data <- mdf_data[ -which(mdf_data$Id %in% c(524, 1299)),]
+dim(mdf_data)
+
+# LotArea Outliers
+plot(mdf_data$LotArea, mdf_data$SalePrice)
+plot(mdf_data$LotArea, mdf_data$GrLivArea)
+cor(mdf_data$LotArea, mdf_data$SalePrice)
+cor(mdf_data$LotArea, mdf_data$GrLivArea)
+mdf_data[mdf_data$LotArea > 60000, c("Id","LotArea", "GrLivArea", "SalePrice")]
+
+# delete outliers based on LotArea vs. SalePrice scatter plot
+mdf_data <- mdf_data[ -which(mdf_data$Id %in% c(250, 314, 336, 452, 707)),]
+
+#TotalBsmtSF
+plot(mdf_data$TotalBsmtSF, mdf_data$SalePrice)
+
+cor(mdf_data$TotalBsmtSF, mdf_data$SalePrice)
+
+boxplot(mdf_data$TotalBsmtSF)
+
+boxplot(mdf_data$BsmtFinSF1)
+
+boxplot(mdf_data$BsmtFinSF2)
+
+boxplot(mdf_data$BsmtUnfSF)
+
+mdf_data[mdf_data$TotalBsmtSF > 3000, c("Id","BsmtFinSF1","BsmtFinSF2" ,"TotalBsmtSF", "SalePrice")]
+
+# delete outliers based on TotalBsmtSF vs. SalePrice scatter plot
+mdf_data <- mdf_data[ -which(mdf_data$Id %in% c(333, 497)),]
+dim(mdf_data)
+
+# Percentage of removed cases 
+round((1460 - 1437) / 1460 * 100, 1)
+```
+
+### **2.16 Correlation Analysis**
+
+Correlation analysis is performed to identify relationships between variables.
+
+```{r check correlation for continues variables (correlation analysis)}
+# Due to not normal distribution of numerical varaiables, I use Spearman method
+cor(mdf_data$SalePrice, mdf_data$GrLivArea, method = "spearman")
+
+# Correlation analysis between numeric variables except 'GarageYrBlt'
+cor_table <- round(cor(mdf_data[, cont_var[-12]], method = "spearman"), 2)
+cor_table
+corrplot(cor_table)
+
+# Correlation analysis for selected variables according to previous corrplot
+cor_table_1 <- round(cor(mdf_data[, cont_var[c(1, 2, 4, 6:11, 13:17, 
+                                               19, 22, 24, 26:30, 32, 33)]],
+                         method = "spearman"), 2)
+
+cor_table_1
+
+corrplot(cor_table_1)
+
+# possible linear correlation between SalePrice and these features:
+cont_ftrs_select_2 <- cont_var[c(1, 2, 4, 6:11, 13:17, 19, 22, 26:30, 32, 33)]
+
+
+# add cont_ftrs_select_2 variables to Data_Description
+Data_Description$cont_ftrs_select_2 <-
+  ifelse(Data_Description$ftr_name %in% cont_ftrs_select_2, TRUE, FALSE)
+
+# There are severe multicollinearity between features
+```
+
+### **2.17 Categorical vs. Numerical Variable Analysis**
+
+Boxplots of categorical variables against `SalePrice` help identify potential predictors.
+
+```{r categorical vs. numerical variables}
+# boxplot
+par(mar = c(2, 2, 2, 2))
+par(mfrow = c(3, 4)) # 3 rows and 4 columns
+
+for (i in cat_var_1) {
+  boxplot(mdf_data$SalePrice ~ mdf_data[, i],
+    main = paste("SalePrice Vs. ", i)
+  )
+}
+
+for (i in cat_var_2) {
+  boxplot(mdf_data$SalePrice ~ mdf_data[, i],
+    main = paste("SalePrice Vs. ", i)
+  )
+}
+
+for (i in cat_var_3) {
+  boxplot(mdf_data$SalePrice ~ mdf_data[, i],
+    main = paste("SalePrice Vs. ", i)
+  )
+}
+
+for (i in cat_var_4) {
+  boxplot(mdf_data$SalePrice ~ mdf_data[, i],
+    main = paste("SalePrice Vs. ", i)
+  )
+}
+
+par(mfrow = c(1, 1))
+
+# categorical feature selection list based on scatter plots for more evaluation
+cat_ftrs_select_1 <- cat_var[c(3, 4, 7, 8, 15, 17, 21, 27, 32, 36, 37, 38, 39, 45)]
+
+# add cat_ftrs_select_1 variables to Data_Description
+Data_Description$cat_ftrs_select_1 <-
+  ifelse(Data_Description$ftr_name %in% cat_ftrs_select_1, TRUE, FALSE)
+```
+
+### **2.17 Comparison of Raw and Modified Data**
+
+The `arsenal::comparedf` function is used to compare the raw and processed datasets, ensuring that all necessary transformations have been applied correctly.
+
+```{r check changes of raw data vs. modified data}
+arsenal::comparedf(kaggle_train, mdf_data)
+```
+
+# **Part 3: Data Preparation**
+
+### **3.1 Handling Missing Values**
+
+In this section, I identify and handle missing values in the dataset. The goal is to ensure that the dataset is complete, with no missing data that could compromise the accuracy of our predictive models.
+
+```{r check missing vlaues}
+# Summarize missing values by variable
+mv_summary_1 <- data.frame("variable_names" = colnames(mdf_data))
+mv_summary_1$mvs_freq <- apply(mdf_data, 2, function(x) sum(is.na(x)))
+mv_summary_1$mvs_percent <- round(mv_summary_1$mvs_freq / nrow(mdf_data), 3) * 100
+# view(mv_summary_1)
+
+# Summarize missing values by case (rows)
+mv_summary_2 <- as.data.frame(table(apply(mdf_data, 1, function(x) sum(is.na(x)))))
+colnames(mv_summary_2) <- c("mvs_per_case", "mvs_freq")
+mv_summary_2$mvs_percent <- round(mv_summary_2$mvs_freq / nrow(mdf_data), 2) * 100
+# view(mv_summary_2)
+
+# Identify patterns of missing data by case
+data_w_mvs <- mdf_data[apply(mdf_data, 1, function(x) any(is.na(x))), ]
+data_w_mvs$mvs_count <- apply(data_w_mvs, 1, function(x) sum(is.na(x)))
+# view(data_w_mvs)
+
+# Conclusion:  missing value in the 'GarageYrBlt'
+# Decision: Remove Garage Year Built
+```
+
+**Conclusion:**\
+We identified missing values primarily in the `GarageYrBlt` feature, which does not significantly impact the analysis and will therefore be removed from the dataset.
+
+```{r Remove GarageYrBlt}
+# Remove GarageYrBlt feature due to missing values
+mdf_data <- mdf_data[, -which(colnames(mdf_data) %in% c("GarageYrBlt"))]
+cont_var <- cont_var[-which(cont_var %in% c("GarageYrBlt"))]
+
+dim(mdf_data)
+length(cont_var)
+# All Missing values are removed.
+```
+
+### **3.2 Features with Zero and Near-Zero Variance**
+
+Features with zero or near-zero variance do not provide useful information and may even hinder model performance. We identify and remove these features as part of our data preparation process.
+
+*A Rule of thumb for detecting near-zero variance features is:*
+
+*1:The fraction of unique values over the sample size is low (say ≤10%).*
+
+*2:The ratio of the frequency of the most prevalent value to the frequency of the second most prevalent value is large (say ≥20%).*
+
+#### **3.2.1 Categorical Features**
+
+```{r proportion of categoral features}
+# Calculate the proportion of each category in categorical features
+prp_tbl <- c()
+for (i in cat_var) {
+  tbl <- round(prop.table(table(mdf_data[, i])) * 100, 1)
+  t <- list(
+    i,
+    # names(tbl),
+    as.numeric(tbl)
+  )
+  prp_tbl <- c(prp_tbl, t)
+}
+prp_tbl
+```
+
+#### 3.2.2 Numerical Features
+
+```{r variance of numerical features}
+# Calculate variance and standard deviation of numerical features
+feature_name <- c()
+varaiance <- c()
+standard_deviation <- c()
+mn_scaling <- function(x) (x - min(x)) / (max(x) - min(x))
+
+# variance of  scaled Numerical features
+for (i in cont_var) {
+  feature_name <- c(feature_name, i)
+  varaiance <- c(varaiance, var(mn_scaling(mdf_data[, i])))
+  standard_deviation <- c(standard_deviation, sd(mdf_data[, i]))
+}
+var_cont_features <- cbind(feature_name, varaiance, standard_deviation)
+var_cont_features <- as.data.frame(var_cont_features)
+# view(var_cont_features)
+
+# Identify features with near-zero variance
+var_cont_features[which(var_cont_features$varaiance < 0.005), ]
+```
+
+**Conclusion:**\
+We identified several categorical features with severe imbalance. These features were either removed or collapsed into broader categories based on a threshold of 0.1 (or 10%).
+
+```{r codes of find near zero variance categorical features in HOML book}
+# Identify and remove near-zero variance features using caret
+nzv_variables <- caret::nearZeroVar(mdf_data, saveMetrics = TRUE) %>%
+  tibble::rownames_to_column() %>%
+  filter(nzv)
+nzv_variables
+
+# Add near-zero variance features to Data_Description
+Data_Description$near_zero_variance <-
+  ifelse(Data_Description$ftr_name %in% nzv_variables$rowname, TRUE, FALSE)
+# View(Data_Description[,-c(1,3,4,6)])
+```
+
+**Decision:**\
+There were no features with zero variance, but 21 features were identified as having near-zero variance and were removed from the dataset.
+
+### **3.3 Final Data Preprocessing**
+
+#### **3.3.1 Reprocessing Data**
+
+I reprocess the data to handle imbalanced categorical features and ensure consistency across the dataset.
+
+```{r Qual and Cond features}
+# OverallQual
+table(mdf_data$OverallQual)
+
+# OverallCond
+table(mdf_data$OverallCond)
+```
+
+According to distribution of instances in these two categorical features, Lumping or collapsing low frequencies part of unbalanced features to similar category.
+
+```{r ReProcess Data 1}
+# Collapse low-frequency categories for OverallQual and OverallCond
+mdf_data_1 <- mdf_data
+
+# Collapse "Very_Poor" into "Poor" for OverallQual
+mdf_data_1[mdf_data_1$OverallQual == "Very_Poor", "OverallQual"] <- "Poor"
+sum(mdf_data_1$OverallQual == "Very_Poor")
+
+# collapsed "Very_Poor" and "Poor" instances in data to "Fair"
+
+# OverallCond
+table(mdf_data_1$OverallCond)
+mdf_data_1[(mdf_data_1$OverallCond == "Very_Poor") |
+  (mdf_data_1$OverallCond == "Poor"), "OverallCond"] <- "Fair"
+table(mdf_data_1$OverallCond)
+
+# OverallQual
+table(mdf_data_1$OverallQual)
+mdf_data_1[(mdf_data_1$OverallQual == "Very_Poor") |
+  (mdf_data_1$OverallQual == "Poor"), "OverallQual"] <- "Fair"
+table(mdf_data_1$OverallQual)
+```
+
+According to distribution of fireplaces, this feature changed to a binary categorical features.
+
+```{r ReProcess Data 2}
+# Convert Fireplaces from Numerical to binary categorical as Yes / No
+
+# Fireplaces
+table(mdf_data$Fireplaces)
+mdf_data_1$Fireplaces <- ifelse(mdf_data_1$Fireplaces == 0, "No", "Yes")
+mdf_data_1$Fireplaces <- as.factor(mdf_data_1$Fireplaces)
+table(mdf_data_1$Fireplaces)
+
+dim(mdf_data_1)
+```
+
+#### **3.3.2 Feature Engineering**
+
+We further refine the dataset by creating new features based on domain knowledge.
+
+```{r Reprocess Data 3}
+# Creating some new features based on domain knowledge and previous analysis
+
+# TotalSF
+mdf_data_1$TotalSF <- mdf_data_1$TotalBsmtSF + mdf_data_1$GrLivArea
+
+# Total_Bathrooms
+mdf_data_1$Total_Bathrooms <- mdf_data_1$FullBath +
+  (0.5 * mdf_data_1$HalfBath) +
+  mdf_data_1$BsmtFullBath +
+  (0.5 * mdf_data_1$BsmtHalfBath)
+
+# TotalPorchSF
+mdf_data_1$TotalPorchSF <- mdf_data_1$OpenPorchSF +
+  mdf_data_1$X3SsnPorch +
+  mdf_data_1$EnclosedPorch +
+  mdf_data_1$ScreenPorch +
+  mdf_data_1$WoodDeckSF
+
+# Create new feature: House Age at the time of sale (YrSold - YearBuilt)
+mdf_data_1$HouseAge <- mdf_data_1$YrSold - mdf_data_1$YearBuilt
+
+# Create new feature: Remodeled (1 if YearRemodAdd > YearBuilt, else 0)
+mdf_data_1$Remodeled <- ifelse(mdf_data_1$YearRemodAdd > mdf_data_1$YearBuilt, 1, 0)
+
+
+
+# Correlation check for new features
+new_features <- c("TotalSF", "Total_Bathrooms", "TotalPorchSF", "HouseAge", "Remodeled")
+correlation_with_saleprice <- cor(mdf_data_1[c(new_features, "SalePrice")])[, "SalePrice"]
+correlation_with_saleprice <- sort(correlation_with_saleprice, decreasing = TRUE)
+
+correlation_with_saleprice
+
+
+```
+
+**Conclusion:**\
+We dropped extra numerical features that introduced multicollinearity and retained those with the highest correlation with `SalePrice`.
+
+```{r Drop features with high multicollinearity}
+# Drop features with high multicollinearity
+mdf_data_1 <- mdf_data_1[, -which(colnames(mdf_data_1) %in% c("TotalBsmtSF", "FullBath", "HalfBath", "BsmtFullBath", "BsmtHalfBath", "OpenPorchSF", "X3SsnPorch", "EnclosedPorch", "ScreenPorch", "WoodDeckSF", "YrSold", "YearBuilt", "YearRemodAdd"))]
+dim(mdf_data_1)
+```
+
+**Sorting features by their correlation with SalePrice**
+
+```{r}
+# Select numerical columns
+numerical_cols <- sapply(mdf_data_1, is.numeric)
+train_df_numeric <- mdf_data_1[, numerical_cols]
+
+# Correlation matrix for numerical variables
+corr_matrix <- round(cor(train_df_numeric, method = "spearman"), 2)
+
+corrplot::corrplot(corr_matrix, method = "color", type = "upper", tl.col = "black")
+
+# Sorting features by their correlation with SalePrice
+corr_with_saleprice <- corr_matrix[, "SalePrice"]
+corr_with_saleprice <- sort(corr_with_saleprice, decreasing = TRUE)
+
+# Display the results
+print(corr_with_saleprice)
+```
+
+```{r Compare new data set vs. old}
+arsenal::comparedf(mdf_data, mdf_data_1)
+```
+
+### **3.4 Data Set Preparation for Modeling**
+
+I prepared three distinct datasets for model evaluation, each using different preprocessing steps to maximize the predictive power.
+
+```{r define three set of data for Models}
+# define data_1
+cleaned_data <- mdf_data_1 #[, -which(colnames(mdf_data_1) == "Id")]
+dim(cleaned_data)
+```
+
+### **3.6 Preprate Kaggle test data set**
+
+```{r Preprate Kaggle test data set}
+# Prepare Kaggle test data
+
+# Modify Kaggle's test data set
+mdf_test <- make_ordinal_data(Process_raw_data(kaggle_test))
+
+head(mdf_test)
+tail(mdf_test)
+str(mdf_test)
+
+# Remove GarageYrBlt feature due to missing values
+mdf_test <- mdf_test[, -which(colnames(mdf_test) %in% c("GarageYrBlt"))]
+
+
+# Collapse low-frequency categories for OverallQual and OverallCond
+table(mdf_test$OverallQual)
+
+# Collapse "Very_Poor" into "Poor" for OverallQual
+mdf_test[mdf_test$OverallQual == "Very_Poor", "OverallQual"] <- "Poor"
+sum(mdf_test$OverallQual == "Very_Poor")
+
+# collapsed "Very_Poor" and "Poor" instances in data to "Fair"
+table(mdf_test$OverallCond)
+
+# OverallCond
+table(mdf_test$OverallCond)
+mdf_test[(mdf_test$OverallCond == "Very_Poor") |
+             (mdf_test$OverallCond == "Poor"), "OverallCond"] <- "Fair"
+table(mdf_test$OverallCond)
+
+# OverallQual
+table(mdf_test$OverallQual)
+mdf_test[(mdf_test$OverallQual == "Very_Poor") |
+             (mdf_test$OverallQual == "Poor"), "OverallQual"] <- "Fair"
+table(mdf_test$OverallQual)
+
+
+#According to distribution of fireplaces, this feature changed to a binary categorical features.
+
+# ReProcess Data 2
+
+# Convert Fireplaces from Numerical to binary categorical as Yes / No
+# Fireplaces
+table(mdf_data$Fireplaces)
+mdf_test$Fireplaces <- ifelse(mdf_test$Fireplaces == 0, "No", "Yes")
+mdf_test$Fireplaces <- as.factor(mdf_test$Fireplaces)
+table(mdf_test$Fireplaces)
+
+dim(mdf_test)
+
+# Creating some new features based on domain knowledge and previous analysis
+
+# TotalSF
+mdf_test$TotalSF <- mdf_test$TotalBsmtSF + mdf_test$GrLivArea
+
+# Total_Bathrooms
+mdf_test$Total_Bathrooms <- mdf_test$FullBath +
+  (0.5 * mdf_test$HalfBath) +
+  mdf_test$BsmtFullBath +
+  (0.5 * mdf_test$BsmtHalfBath)
+
+# TotalPorchSF
+mdf_test$TotalPorchSF <- mdf_test$OpenPorchSF +
+  mdf_test$X3SsnPorch +
+  mdf_test$EnclosedPorch +
+  mdf_test$ScreenPorch +
+  mdf_test$WoodDeckSF
+
+# Create new feature: House Age at the time of sale (YrSold - YearBuilt)
+mdf_test$HouseAge <- mdf_test$YrSold - mdf_test$YearBuilt
+
+# Create new feature: Remodeled (1 if YearRemodAdd > YearBuilt, else 0)
+mdf_test$Remodeled <- ifelse(mdf_test$YearRemodAdd > mdf_test$YearBuilt, 1, 0)
+
+# Drop features with high multicollinearity
+mdf_test <- mdf_test[, -which(colnames(mdf_test) %in% c("TotalBsmtSF", "FullBath", "HalfBath", "BsmtFullBath", "BsmtHalfBath", "OpenPorchSF", "X3SsnPorch", "EnclosedPorch", "ScreenPorch", "WoodDeckSF", "YrSold", "YearBuilt", "YearRemodAdd"))]
+dim(mdf_test)
+
+#write.csv(mdf_test, file = "mdf_test.csv", row.names = FALSE)
+```
+
+#### **Impute the missing values of kaggle test data set**
+
+```{r impute the missing values of Kaggle test data set}
+
+# library mice
+library(mice)
+
+# Impute missing values with MICE
+imp <- mice(mdf_test, m = 1, method = "cart")
+
+# Create a complete dataset
+imputed_test <- complete(imp, 1)  # Use the first imputed dataset
+
+# Analyze the imputed data
+# ...
+# Verify if there are any remaining missing values
+sum(is.na(imputed_test))
+
+# utitility due to its zero variance will be removed during data preprocessing
+
+mdf_test <- imputed_test
+
+#write.csv(mdf_test, file = "imptuted_test.csv", row.names = FALSE)
+```
+
+#### Data 1
+
+steps for creating Train and Validation set:
+
+1- by deleting near zero variance features
+
+2- by applying feature selection methods suggests by HOML Book
+
+Use recipe package to create our feature engineering blueprint_1 to perform the following tasks:
+
+1- Filter out near-zero variance features .
+
+2- Collapsing factor levels with threshold 0.1
+
+```{r Divide Data Set into Train and Test}
+# Data 1: Filter out near-zero variance features, collapse low-frequency categories
+# Divide Data set into Train and Test--------------
+set.seed(1234)
+train_cases <- sample(1:nrow(cleaned_data), nrow(cleaned_data) * 0.7)
+train_1 <- cleaned_data[train_cases, ]
+test_1 <- cleaned_data[-train_cases, ]
+ 
+blueprint_1 <- recipe(SalePrice ~ ., data = train_1) %>%
+  step_rm("Id") %>%
+  step_nzv(all_nominal()) %>%
+  step_nzv(all_numeric()) %>%
+  step_other(matches("Electrical|RoofStyle|SaleType|Neighborhood|Condition1"),
+    threshold = 0.01, other = "Other"
+  )
+
+blueprint_1
+
+# we do not want to train on the test data ,as this would create data leakage. So in this step we estimate these parameters based on the training data of interest.
+prepare_1 <- prep(blueprint_1, training = train_1)
+prepare_1
+
+# Lastly, we can apply our blueprint to new data (e.g., the training data or future test data)
+train_1 <- bake(prepare_1, new_data = train_1)
+
+test_1 <- bake(prepare_1, new_data = test_1)
+
+# kaggle test data set
+test_k_1 <- bake(prepare_1, new_data = imputed_test)
+
+# add log_SalePrice to train_1 data set
+train_1$log_SalePrice <- log(train_1$SalePrice)
+
+dim(train_1)
+summary(train_1)
+dim(test_1)
+summary(test_1)
+
+# check random selection of train and test data
+summary(train_1$SalePrice)
+summary(test_1$SalePrice)
+
+summary(train_1$TotalSF)
+summary(test_1$TotalSF)
+```
+
+#### Data 2
+
+Steps for creating data_2:
+
+1- Filter out near-zero variance features .
+
+2- Collapsing factor levels with threshold 0.1
+
+3 -Ordinarily encode all quality features, which are on a 1–10 Likert scale.
+
+4- Standardize (center and scale) all numeric features.
+
+```{r feature selection approaches of HOML Book - data_2}
+# Data 2: Include ordinal encoding and standardize numeric features
+# Divide Data set into Train and Test--------------
+set.seed(1234)
+train_cases <- sample(1:nrow(cleaned_data), nrow(cleaned_data) * 0.7)
+train_2 <- cleaned_data[train_cases, ]
+test_2 <- cleaned_data[-train_cases, ]
+
+train_Id <- train_1$Id
+test_Id  <- test_1$Id
+
+blueprint_2 <- recipe(SalePrice ~ ., data = train_2) %>%
+  step_rm("Id") %>%
+  step_nzv(all_nominal()) %>%
+  step_nzv(all_numeric()) %>%
+  step_other(matches("Electrical|RoofStyle|SaleType"),
+    threshold = 0.01, other = "Other"
+  ) %>%
+  step_integer(matches("Qual|Cond|QC|Qu")) %>%
+  step_center(all_numeric(), -all_outcomes()) %>%
+  step_scale(all_numeric(), -all_outcomes())
+
+blueprint_2
+
+# we do not want to train on the test data (e.g., standardize and PCA) as this would create data leakage. So in this step we estimate these parameters based on the training data of interest.
+prepare_2 <- prep(blueprint_2, training = train_2)
+prepare_2
+
+# Lastly, we can apply our blueprint to new data (e.g., the training data or future test data)
+train_2 <- bake(prepare_2, new_data = train_2)
+
+test_2 <- bake(prepare_2, new_data = test_2)
+
+test_k_2 <- bake(prepare_2, new_data = imputed_test)
+
+# add log_SalePrice to train_3 data set
+train_2$log_SalePrice <- log(train_2$SalePrice)
+
+head(train_2)
+dim(train_2)
+
+head(test_2)
+dim(test_2)
+```
+
+### **3.5 Memory Management**
+
+Finally, I release memory by removing temporary variables to optimize performance.
+
+```{r Release Memory Part_2}
+# Remove all unused variables 
+rm(list = setdiff(ls(), 
+                  c("mdf_data", "mdf_test", "train_1", "train_2",
+                    "test_1", "test_2", 
+                    "test_k_1", "test_k_2"
+                    )
+                  )
+   )
+
+# Clear plot devices to release memory
+dev.off()
+gc()
+```
+
+# **Part 4: Predictive Models**
+
+### **Part 4.1: Linear Regression**
+
+We begin by developing linear regression models using different datasets. We evaluate the assumptions of linear regression, diagnose potential issues, and refine the models accordingly.
+
+#### **Model 1 with Data 1**
+
+```{r Model lm_1}
+# Model 1: Initial Linear Regression
+
+lm_1 <- lm(log_SalePrice ~ . - SalePrice , data = train_1)
+options(max.print = 999999)
+summary(lm_1)
+
+# Check Assumptions of Regression
+
+# Normality of residuals
+hist(lm_1$residuals, probability = TRUE)
+lines(density(lm_1$residuals), col = "red")
+
+# QQ-plot
+qqnorm(lm_1$residuals, main = "QQ Plot of residuals lm_1", pch = 20)
+qqline(lm_1$residuals, col = "red")
+
+# Test for Skewness and Kurtosis
+# Good for sample size > 25
+# Jarque-Bera Test (Skewness = 0 ?)
+# p-value < 0.05 reject normality assumption
+jarque.test(lm_1$residuals)
+
+# Anscombe-Glynn Test (Kurtosis = 3 ?)
+# p-value < 0.05 reject normality assumption
+anscombe.test(lm_1$residuals)
+
+# Note: Residuals are not Normally Distributed!
+
+# Diagnostic Plots
+plot(lm_1)
+
+# Cook's distance > 1
+head(cooks.distance(lm_1))
+sum(cooks.distance(lm_1) > 1, na.rm = T)
+
+# Check multicollinearity
+#car :: vif(lm_1)
+# The Reason of Error is : High Multicollinearity
+
+# Note: Residuals are not Normally Distributed!
+# Note: low Hetroscedasticity Problem!
+
+# Conclusion:
+# severe violation of regression assumptions
+# Bad model!
+```
+
+**Conclusion:**\
+The initial linear regression model exhibits severe violations of regression assumptions, including non-normal residuals and high multicollinearity. This model is considered inadequate for prediction.
+
+#### **Model 1_t with Data 1 (Refined)**
+
+Find best features based on t-test vip method
+
+```{r Very import features of Model_1}
+vip(lm_1, num_features = 40, geom = "point")
+```
+
+Factors might affect the value of home price, including the neighborhood it is located in, the size of its lot and the age and condition of the structure itself.
+
+Most important factors for estimating a home price:
+
+1- Size: total area of a house (basement area + first and second floor area)
+
+2- Neighborhood
+
+3- Condition
+
+4- Facilities
+
+Define a Model based on t-test results and the most important factors of home price:
+
+```{r t_test_1 subset_formula}
+# Define a formula for estimating a home price
+subset_formula <- as.formula(log_SalePrice ~
+  # Size of Property
+  TotalSF + Total_Bathrooms +
+  LotArea + TotalPorchSF +
+  # Year
+  HouseAge +
+  # Neighborhood & SaleType
+  MSZoning + SaleCondition +
+  # Conditon and Quality
+  OverallCond + OverallQual +
+  # additional facilities
+  GarageCars  - SalePrice )
+```
+
+```{r Model_1 based on t-test results}
+# Define a refined model based on t-test results and important factors
+lm_1_t <- lm(subset_formula, data = train_1)
+summary(lm_1_t)
+car::vif(lm_1_t)
+
+
+# Check Assumptions of Regression -------------
+# Normality of residuals
+hist(lm_1_t$residuals, probability = TRUE)
+lines(density(lm_1_t$residuals), col = "red")
+
+# QQ-plot
+qqnorm(lm_1_t$residuals, main = "QQ Plot of residuals lm_1", pch = 20)
+qqline(lm_1_t$residuals, col = "red")
+
+# Test for Skewness and Kurtosis
+# Good for sample size > 25
+# Jarque-Bera Test (Skewness = 0 ?)
+# p-value < 0.05 reject normality assumption
+jarque.test(lm_1_t$residuals)
+
+# Anscombe-Glynn Test (Kurtosis = 3 ?)
+# p-value < 0.05 reject normality assumption
+anscombe.test(lm_1_t$residuals)
+
+# Note: Residuals are not Normally Distributed!
+
+# Diagnostic Plots
+plot(lm_1_t)
+# Note: low Hetroscedasticity Problem!
+
+# Cook's distance > 1
+head(cooks.distance(lm_1_t))
+sum(cooks.distance(lm_1_t) > 1) # ,na.rm = TRUE)
+
+# Check multicollinearity
+car::vif(lm_1_t)
+# No Multicollinearity
+```
+
+**Conclusion:**\
+This refined model shows improvement but still has some residual issues. We proceed by removing influential points identified by Cook's distance.
+
+```{r Model_1 based on t-test results and remove bad cases}
+# Remove influential cases and refit the model
+train_1_1 <- train_1[-which(rownames(train_1) %in% c(24, 130, 573, 941)), ] # in first try
+
+# Build new model wity modified train_1
+lm_1_t <- lm(subset_formula, data = train_1_1)
+
+summary(lm_1_t)
+
+
+# Check Assumptions of Regression -------------
+# Normality of residuals
+hist(lm_1_t$residuals, probability = TRUE)
+lines(density(lm_1_t$residuals), col = "red")
+
+# QQ-plot
+qqnorm(lm_1_t$residuals, main = "QQ Plot of residuals lm_1", pch = 20)
+qqline(lm_1_t$residuals, col = "red")
+
+# Test for Skewness and Kurtosis
+# Good for sample size > 25
+# Jarque-Bera Test (Skewness = 0 ?)
+# p-value < 0.05 reject normality assumption
+jarque.test(lm_1_t$residuals)
+
+# Anscombe-Glynn Test (Kurtosis = 3 ?)
+# p-value < 0.05 reject normality assumption
+anscombe.test(lm_1_t$residuals)
+
+# Note: Residuals are not Normally Distributed!
+# Alleviate the problem by removing some instances
+
+# Diagnostic Plots
+plot(lm_1_t)
+# Note: low Hetroscedasticity Problem!
+# Alleviate the problem by removing bad cases
+
+# Cook's distance > 1
+head(cooks.distance(lm_1_t))
+sum(cooks.distance(lm_1_t) > 1) # ,na.rm = TRUE)
+
+# Check multicollinearity
+car::vif(lm_1_t)
+# No Multicollinearity
+```
+
+**Model Testing:**
+
+```{r Model Testing:}
+# Test the Model----------------------------------
+# Model: lm_2
+# Prediction
+pred_lm_1_t <- predict(lm_1_t, test_1)
+pred_lm_1_t <- exp(pred_lm_1_t)
+# colnames(pred_lm_1_t) <- "Pred_SalePrice"
+pred_lm_1_t
+# Absolute error mean, median, sd, max, min-------
+abs_err_lm_1_t <- abs(pred_lm_1_t - test_1$SalePrice)
+
+# Create a dataframe to save prediction results on test data set
+models_comp <- data.frame(
+  "Mean_of_AbsErrors" = mean(abs_err_lm_1_t),
+  "Median_of_AbsErrors" = median(abs_err_lm_1_t),
+  "SD_of_AbsErrors" = sd(abs_err_lm_1_t),
+  "IQR_of_AbsErrors" = IQR(abs_err_lm_1_t),
+  "Min_of_AbsErrors" = min(abs_err_lm_1_t),
+  "Max_of_AbsErrors" = max(abs_err_lm_1_t),
+  row.names = "LM_t-test_1"
+)
+View(models_comp)
+models_comp
+# Actual vs. Predicted
+plot(test_1$SalePrice, pred_lm_1_t,
+  main = "LM_t-test_1",
+  xlab = "Actual", ylab = "Prediction"
+)
+abline(a = 0, b = 1, col = "red", lwd = 2)
+```
+
+#### **Model 2 with Data 2**
+
+We repeat the process for a different dataset, applying the same linear regression techniques and model refinement.
+
+```{r Model_2 lm_2}
+# Model 2: Linear Regression
+
+# Define features same as t_test feature selection of model 1
+lm_2 <- lm(subset_formula, data = train_2)
+options(max.print = 999999)
+summary(lm_2)
+
+# Check Assumptions of Regression -------------
+# Normality of residuals
+hist(lm_2$residuals, probability = TRUE)
+lines(density(lm_2$residuals), col = "red")
+
+# QQ-plot
+qqnorm(lm_2$residuals, main = "QQ Plot of residuals lm_2", pch = 20)
+qqline(lm_2$residuals, col = "red")
+
+# Test for Skewness and Kurtosis
+# Good for sample size > 25
+# Jarque-Bera Test (Skewness = 0 ?)
+# p-value < 0.05 reject normality assumption
+jarque.test(lm_2$residuals)
+
+# Anscombe-Glynn Test (Kurtosis = 3 ?)
+# p-value < 0.05 reject normality assumption
+anscombe.test(lm_2$residuals)
+
+# Note: Residuals are not Normally Distributed!
+
+# Diagnostic Plots
+plot(lm_2)
+
+# Cook's distance > 1
+head(cooks.distance(lm_2))
+sum(cooks.distance(lm_2) > 1)
+
+# Check multicollinearity
+car::vif(lm_2)
+# No Multicollinearity
+
+# Note: Residuals are not Normally Distributed!
+# Note: low Hetroscedasticity Problem!
+
+# Very import features of Model 1
+vip(lm_2, num_features = 40, geom = "point")
+```
+
+#### **Model_2_t with data_2**
+
+Define a Model based on t-test results and most important factors of home price
+
+```{r Model_2 based on t-test results}
+# Refinement by removing influential cases
+train_2_1 <- train_2[-which(rownames(train_2) %in% c(84, 130, 573, 709, 873, 941)), ] # in first try
+
+lm_2_t <- lm(subset_formula, data = train_2_1)
+summary(lm_2_t)
+
+# Check Assumptions of Regression -------------
+# Normality of residuals
+hist(lm_2_t$residuals, probability = TRUE)
+lines(density(lm_2_t$residuals), col = "red")
+
+# QQ-plot
+qqnorm(lm_2_t$residuals, main = "QQ Plot of residuals lm_1", pch = 20)
+qqline(lm_2_t$residuals, col = "red")
+
+# Test for Skewness and Kurtosis
+# Good for sample size > 25
+# Jarque-Bera Test (Skewness = 0 ?)
+# p-value < 0.05 reject normality assumption
+jarque.test(lm_2_t$residuals)
+
+# Anscombe-Glynn Test (Kurtosis = 3 ?)
+# p-value < 0.05 reject normality assumption
+anscombe.test(lm_2_t$residuals)
+
+# Note: Residuals are not Normally Distributed!
+
+# Diagnostic Plots
+plot(lm_2_t)
+
+# Note: low Hetroscedasticity Problem!
+# Alleviate the problem by removing some cases
+
+# Cook's distance > 1
+head(cooks.distance(lm_2_t))
+sum(cooks.distance(lm_2_t) > 1, na.rm = TRUE)
+
+# Check multicollinearity
+car::vif(lm_2_t)
+# No Multicollinearity
+
+## Model Testing
+# Test the Model----------------------------------
+# Model: lm_2
+# Prediction
+pred_lm_2_t <- predict(lm_2_t, test_2)
+pred_lm_2_t <- exp(pred_lm_2_t)
+# colnames(pred_lm_2_t) <- "Pred_SalePrice"
+pred_lm_2_t
+# Absolute error mean, median, sd, max, min-------
+abs_err_lm_2_t <- abs(pred_lm_2_t - test_2$SalePrice)
+
+# Create a dataframe to save prediction results on test data set
+models_comp <- rbind(
+  models_comp,
+  data.frame(
+    "Mean_of_AbsErrors" = mean(abs_err_lm_2_t),
+    "Median_of_AbsErrors" = median(abs_err_lm_2_t),
+    "SD_of_AbsErrors" = sd(abs_err_lm_2_t),
+    "IQR_of_AbsErrors" = IQR(abs_err_lm_2_t),
+    "Min_of_AbsErrors" = min(abs_err_lm_2_t),
+    "Max_of_AbsErrors" = max(abs_err_lm_2_t),
+    row.names = "LM_t-test_2"
+  )
+)
+
+View(models_comp)
+models_comp
+# Actual vs. Predicted
+plot(test_1$SalePrice, pred_lm_2_t,
+  main = "LM_t-test_2",
+  xlab = "Actual", ylab = "Prediction"
+)
+abline(a = 0, b = 1, col = "red", lwd = 2)
+```
+
+
+#### Memory Management:
+
+```{r Release Memory Part4 4_1}
+# Remove all unused variables 
+rm(list = setdiff(ls(), 
+                  c("mdf_data", "mdf_test", "train_1", "train_2",
+                    "test_1", "test_2", 
+                    "test_k_1", "test_k_2",
+                    "models_comp"
+                    )
+                  )
+   )
+
+# Clear plot devices to release memory
+dev.off()
+gc()
+```
+
+### **Part 4.2: Principal Component Regression (PCR)**
+
+In this section, we employ Principal Component Regression to reduce dimensionality and improve model performance.
+
+#### **Model 1 with Data 1**
+
+```{r Required Library_2}
+library("pls") # Principal Component Regression
+```
+
+### Model_1 with data_1
+
+```{r Building Prediction Model_1 - PCR - data_1}
+# Build PCR model
+set.seed(1234)
+pcr_res_1 <- pcr(log_SalePrice ~ . - SalePrice,
+  data = train_1,
+  center = TRUE,
+  validation = "CV"
+)
+# Scale = TRUE -> encounter this error:
+## Error in La.svd(X) : infinite or missing values in 'x'
+## In addition: Warning message:
+## In FUN(X[[i]], ...) : Scaling with (near) zero standard deviation
+# So I set center = TRUE
+
+summary(pcr_res_1)
+
+# pcr_res_1$coefficients
+# pcr_res_1$scores
+score_mat_1 <- as.matrix(pcr_res_1$scores)
+
+# Select best number of components
+validationplot(pcr_res_1, val.type = "RMSEP")
+pls_RMSEP_1 <- RMSEP(pcr_res_1, estimate = "CV")
+pls_RMSEP_1
+min_comp_1 <- which.min(pls_RMSEP_1$val) - 1
+min_comp_1
+points(min_comp_1, min(pls_RMSEP_1$val), pch = 1, col = "red")
+
+## Model Testing
+pred_pcr_1 <- predict(pcr_res_1, test_1, ncomp = min_comp_1)
+pred_pcr_1 <- exp(pred_pcr_1)
+colnames(pred_pcr_1) <- "Pred_SalePrice"
+pred_pcr_1
+
+abs_err_pcr_1 <- abs(pred_pcr_1 - test_1$SalePrice)
+
+# Create a dataframe to save prediction results on test data set
+models_comp <- rbind(
+  models_comp,
+  data.frame(
+    "Mean_of_AbsErrors" = mean(abs_err_pcr_1),
+    "Median_of_AbsErrors" = median(abs_err_pcr_1),
+    "SD_of_AbsErrors" = sd(abs_err_pcr_1),
+    "IQR_of_AbsErrors" = IQR(abs_err_pcr_1),
+    "Min_of_AbsErrors" = min(abs_err_pcr_1),
+    "Max_of_AbsErrors" = max(abs_err_pcr_1),
+    row.names = "PCR_1"
+  )
+)
+View(models_comp)
+models_comp
+
+plot(test_1$SalePrice, pred_pcr_1,
+  main = "PCR Model_1",
+  xlab = "Actual", ylab = "Prediction"
+)
+abline(a = 0, b = 1, col = "red", lwd = 2)
+```
+
+### Model 2 with Data 2
+
+```{r Building Prediction Model - PCR - Model_2}
+# Build PCR model
+set.seed(1234)
+pcr_res_2 <- pcr(log_SalePrice ~ . - SalePrice,
+  data = train_2,
+  #center = TRUE,
+  validation = "CV"
+)
+# Train_2 centered and scaled in data preparation step
+
+summary(pcr_res_2)
+
+# pcr_res_2$coefficients
+# pcr_res_2$scores
+score_mat_2 <- as.matrix(pcr_res_2$scores)
+
+# Select best number of components
+validationplot(pcr_res_2, val.type = "RMSEP")
+pls_RMSEP_2 <- RMSEP(pcr_res_2, estimate = "CV")
+pls_RMSEP_2
+min_comp_2 <- which.min(pls_RMSEP_2$val) - 1
+min_comp_2
+points(min_comp_2, min(pls_RMSEP_2$val), pch = 1, col = "red")
+
+# Model Testing
+pred_pcr_2 <- predict(pcr_res_2, test_2, ncomp = min_comp_2)
+pred_pcr_2 <- exp(pred_pcr_2)
+colnames(pred_pcr_2) <- "Pred_SalePrice"
+pred_pcr_2
+
+abs_err_pcr_2 <- abs(pred_pcr_2 - test_2$SalePrice)
+
+models_comp <- rbind(models_comp, data.frame(
+  "Mean_of_AbsErrors" = mean(abs_err_pcr_2),
+  "Median_of_AbsErrors" = median(abs_err_pcr_2),
+  "SD_of_AbsErrors" = sd(abs_err_pcr_2),
+  "IQR_of_AbsErrors" = IQR(abs_err_pcr_2),
+  "Min_of_AbsErrors" = min(abs_err_pcr_2),
+  "Max_of_AbsErrors" = max(abs_err_pcr_2),
+  row.names = "PCR_2"
+))
+
+View(models_comp)
+models_comp
+
+plot(test_2$SalePrice, pred_pcr_2,
+  main = "PCR Model_2",
+  xlab = "Actual", ylab = "Prediction"
+)
+abline(a = 0, b = 1, col = "red", lwd = 2)
+```
+
+
+### Memory Management:
+
+```{r Release Memory}
+# Remove all unused variables 
+rm(list = setdiff(ls(), 
+                  c("mdf_data", "mdf_test", "train_1", "train_2",
+                    "test_1", "test_2", 
+                    "test_k_1", "test_k_2",
+                    "models_comp"
+                    )
+                  )
+   )
+
+# Clear plot devices to release memory
+dev.off()
+gc()
+```
+
+## **Part 4.3: Regularization**
+
+Regularization techniques such as Ridge and Lasso regression are employed to address multicollinearity and enhance model performance by penalizing less important features.
+
+#### **Model 1: Ridge Regression**
+
+```{r Model 1: Ridge Regression}
+# Ridge Regression
+
+# Model_Matrix_1
+x_1 <- model.matrix(log_SalePrice ~ . - SalePrice,
+  data = train_1)[, -1] # remove intercept
+
+head(x_1)
+dim(x_1)
+
+y_1 <- train_1$log_SalePrice
+head(y_1)
+
+lambda_grid <- 10^seq(3, -2, length = 100)
+head(lambda_grid)
+
+# Apply Ridge Regression (alpha = 0)
+ridgereg_res_1 <- glmnet(x_1, y_1,
+  alpha = 0,
+  lambda = lambda_grid,
+  standardize = TRUE,
+  intercept = TRUE
+)
+
+dim(coef(ridgereg_res_1))
+
+# Plot Reg. Coefficients vs. Log Lambda
+plot(ridgereg_res_1, xvar = "lambda")
+
+
+# Cross validation to choose the best model
+set.seed(123)
+ridge_cv_1 <- cv.glmnet(x_1, y_1,
+  alpha = 0,
+  lambda = lambda_grid,
+  nfolds = 10
+)
+
+
+# The mean cross-validated error
+head(ridge_cv_1$cvm)
+
+# Estimate of standard error of cv.
+head(ridge_cv_1$cvsd)
+
+# Value of lambda that gives minimum cvm
+ridge_cv_1$lambda.min
+
+# Coefficients of regression w/ best_lambda
+ridgereg_1 <- glmnet(x_1, y_1,
+  alpha = 0,
+  lambda = ridge_cv_1$lambda.min,
+  standardize = TRUE,
+  intercept = TRUE
+)
+
+coef(ridgereg_1)
+
+# Model Testing
+
+# Model_1: ridgereg
+
+# Prediction
+# Create model matrix for test
+test_1$log_SalePrice <- log(test_1$SalePrice)
+x_test_1 <- model.matrix(log_SalePrice ~ . - SalePrice, data = test_1)[, -1] # remove intercept
+
+pred_ridgereg_1 <- predict(ridgereg_1, newx = x_test_1)
+
+pred_ridgereg_1 <- exp(pred_ridgereg_1)
+pred_ridgereg_1
+
+# Absolute error mean, median, sd, max, min-------
+abs_err_ridgereg_1 <- abs(pred_ridgereg_1 - test_1$SalePrice)
+models_comp <- rbind(models_comp, "RidgeReg_1" = c(
+  mean(abs_err_ridgereg_1),
+  median(abs_err_ridgereg_1),
+  sd(abs_err_ridgereg_1),
+  IQR(abs_err_ridgereg_1),
+  range(abs_err_ridgereg_1)
+))
+
+View(models_comp)
+models_comp
+
+# Actual vs. Predicted
+plot(test_1$SalePrice, pred_ridgereg_1,
+  main = "RidgeReg_1",
+  # xlim = c(0, 2000), ylim = c(0, 2000),
+  xlab = "Actual", ylab = "Prediction"
+)
+
+abline(a = 0, b = 1, col = "red", lwd = 2)
+```
+
+#### **Model 2: Ridge Regression**
+
+```{r Model 2: Ridge Regression}
+#Model 1: Ridge Regression
+
+# Model_Matrix_2
+x_2 <- model.matrix(log_SalePrice ~ . - SalePrice,
+  data = train_2
+)[, -1] # remove intercept
+head(x_2)
+dim(x_2)
+
+y_2 <- train_2$log_SalePrice
+head(y_2)
+
+lambda_grid <- 10^seq(3, -2, length = 100)
+head(lambda_grid)
+
+# Apply Ridge Regression (alpha = 0)
+ridgereg_res_2 <- glmnet(x_2, y_2,
+  alpha = 0,
+  lambda = lambda_grid,
+  standardize = TRUE,
+  intercept = TRUE
+)
+
+dim(coef(ridgereg_res_2))
+
+# Plot Reg. Coefficients vs. Log Lambda
+plot(ridgereg_res_2, xvar = "lambda")
+
+# Cross validation to choose the best model
+set.seed(123)
+ridge_cv_2 <- cv.glmnet(x_2, y_2,
+  alpha = 0,
+  lambda = lambda_grid,
+  nfolds = 10
+)
+
+
+# The mean cross-validated error
+head(ridge_cv_2$cvm)
+
+# Estimate of standard error of cv.
+head(ridge_cv_2$cvsd)
+
+# Value of lambda that gives minimum cvm
+ridge_cv_2$lambda.min
+
+# Coefficients of regression w/ best_lambda
+ridgereg_2 <- glmnet(x_2, y_2,
+  alpha = 0,
+  lambda = ridge_cv_2$lambda.min,
+  standardize = TRUE,
+  intercept = TRUE
+)
+
+coef(ridgereg_2)
+
+# # Model Testing
+# Model_2: ridgereg
+
+# Prediction
+# Create model matrix for test
+test_2$log_SalePrice <- log(test_2$SalePrice)
+x_test_2 <- model.matrix(log_SalePrice ~ . - SalePrice, data = test_2)[, -1] # remove intercept
+
+pred_ridgereg_2 <- predict(ridgereg_2, newx = x_test_2)
+
+pred_ridgereg_2 <- exp(pred_ridgereg_2)
+pred_ridgereg_2
+
+# Absolute error mean, median, sd, max, min-------
+abs_err_ridgereg_2 <- abs(pred_ridgereg_2 - test_2$SalePrice)
+models_comp <- rbind(models_comp, "RidgeReg_2" = c(
+  mean(abs_err_ridgereg_2),
+  median(abs_err_ridgereg_2),
+  sd(abs_err_ridgereg_2),
+  IQR(abs_err_ridgereg_2),
+  range(abs_err_ridgereg_2)
+))
+
+View(models_comp)
+models_comp
+
+# Actual vs. Predicted
+plot(test_2$SalePrice, pred_ridgereg_2,
+  main = "RidgeReg_2",
+  xlab = "Actual", ylab = "Prediction"
+)
+
+abline(a = 0, b = 1, col = "red", lwd = 2)
+```
+
+#### **Model 1: Lasso Regression**
+
+```{r Model 1: Lasso Regression}
+
+# Lasso Regression
+# Apply LASSO Regression (alpha = 1)
+lassoreg_res_1 <- glmnet(x_1, y_1,
+  alpha = 1,
+  lambda = lambda_grid,
+  standardize = TRUE,
+  intercept = TRUE
+)
+
+dim(coef(lassoreg_res_1))
+
+# Plot Reg. Coefficients vs. Log Lambda
+plot(lassoreg_res_1, xvar = "lambda")
+
+# Cross validation to choose the best model
+set.seed(123)
+lasso_cv_1 <- cv.glmnet(x_1, y_1,
+  alpha = 1,
+  lambda = lambda_grid,
+  nfolds = 10
+)
+
+# The mean cross-validated error
+head(lasso_cv_1$cvm)
+
+# Estimate of standard error of cvm.
+head(lasso_cv_1$cvsd)
+
+# value of lambda that gives minimum cvm
+lasso_cv_1$lambda.min
+
+# Coefficients of regression w/ best_lambda
+lassoreg_1 <- glmnet(x_1, y_1,
+  alpha = 1,
+  lambda = lasso_cv_1$lambda.min,
+  standardize = TRUE,
+  intercept = TRUE
+)
+coef(lassoreg_1)
+
+# # Model Testing
+# Model: lassoreg_1
+# Prediction
+pred_lassoreg_1 <- predict(lassoreg_1, newx = x_test_1)
+
+pred_lassoreg_1 <- exp(pred_lassoreg_1)
+pred_lassoreg_1
+
+# Absolute error mean, median, sd, max, min-------
+abs_err_lassoreg_1 <- abs(pred_lassoreg_1 - test_1$SalePrice)
+models_comp <- rbind(models_comp, "LASSOReg_1" = c(
+  mean(abs_err_lassoreg_1),
+  median(abs_err_lassoreg_1),
+  sd(abs_err_lassoreg_1),
+  IQR(abs_err_lassoreg_1),
+  range(abs_err_lassoreg_1)
+))
+
+View(models_comp)
+models_comp
+
+# Actual vs. Predicted
+plot(test_1$SalePrice, pred_lassoreg_1,
+  main = "LASSOReg_1",
+  # xlim = c(0, 2000), ylim = c(0, 2000),
+  xlab = "Actual", ylab = "Prediction"
+)
+abline(a = 0, b = 1, col = "red", lwd = 2)
+```
+
+### Model 2: Lasso Regression
+
+```{r Model 2: Lasso Regression}
+# Lasso Regression 
+
+# Apply LASSO Regression (alpha = 1)
+lassoreg_res_2 <- glmnet(x_2, y_2,
+  alpha = 1,
+  lambda = lambda_grid,
+  standardize = TRUE,
+  intercept = TRUE
+)
+
+dim(coef(lassoreg_res_2))
+
+# Plot Reg. Coefficients vs. Log Lambda
+plot(lassoreg_res_2, xvar = "lambda")
+
+# Cross validation to choose the best model
+set.seed(123)
+lasso_cv_2 <- cv.glmnet(x_2, y_2,
+  alpha = 1,
+  lambda = lambda_grid,
+  nfolds = 10
+)
+
+# The mean cross-validated error
+head(lasso_cv_2$cvm)
+
+# Estimate of standard error of cvm.
+head(lasso_cv_2$cvsd)
+
+# value of lambda that gives minimum cvm
+lasso_cv_2$lambda.min
+
+# Coefficients of regression w/ best_lambda
+lassoreg_2 <- glmnet(x_2, y_2,
+  alpha = 1,
+  lambda = lasso_cv_2$lambda.min,
+  standardize = TRUE,
+  intercept = TRUE
+)
+coef(lassoreg_2)
+
+# Test the Model----------------------------------
+# Model: lassoreg_2
+# Prediction
+pred_lassoreg_2 <- predict(lassoreg_2, newx = x_test_2)
+
+pred_lassoreg_2 <- exp(pred_lassoreg_2)
+pred_lassoreg_2
+
+# Absolute error mean, median, sd, max, min-------
+abs_err_lassoreg_2 <- abs(pred_lassoreg_2 - test_2$SalePrice)
+models_comp <- rbind(models_comp, "LASSOReg_2" = c(
+  mean(abs_err_lassoreg_2),
+  median(abs_err_lassoreg_2),
+  sd(abs_err_lassoreg_2),
+  IQR(abs_err_lassoreg_2),
+  range(abs_err_lassoreg_2)
+))
+
+View(models_comp)
+models_comp
+
+# Actual vs. Predicted
+plot(test_2$SalePrice, pred_lassoreg_2,
+  main = "LASSOReg_2",
+  # xlim = c(0, 2000), ylim = c(0, 2000),
+  xlab = "Actual", ylab = "Prediction"
+)
+abline(a = 0, b = 1, col = "red", lwd = 2)
+```
+
+#### **Memory Management:**
+
+```{r Release Memory Part 4_3}
+# Remove all unused variables 
+rm(list = setdiff(ls(), 
+                  c("mdf_data", "mdf_test", "train_1", "train_2",
+                    "test_1", "test_2", 
+                    "test_k_1", "test_k_2",
+                    "models_comp"
+                    )
+                  )
+   )
+
+# Clear plot devices to release memory
+dev.off()
+gc()
+```
+
+## **Part 4.4: Decision Trees and Random Forest**
+
+In this section, we develop decision trees and random forests to model the data, examining the structure and importance of variables.
+
+#### **Model 1: Decision Tree with Data 1**
+
+```{r Model 1: Decision Tree Model Using All features}
+# Decision Tree
+
+# Decision Tree Model Using All Variables
+tree_1 <- rpart(
+  formula = log_SalePrice ~ . - SalePrice,
+  data = train_1,
+  control = list(
+    cp = 0.0001,
+    maxdepth = 3,
+    minbucket = 15
+  )
+)
+# Plot the tree
+prp(tree_1)
+
+# Prune the tree
+plotcp(tree_1)
+tree_1$cptable[which.min(tree_1$cptable[, "xerror"])]
+
+# Prune the tree
+tree_1_P <- prune.rpart(tree_1,
+  cp = tree_1$cptable[which.min(tree_1$cptable[, "xerror"])]
+)
+
+# Plot the tree
+prp(tree_1_P)
+
+# Test the Model----------------------------------
+# Prediction: tree_1
+pred_tree_1 <- predict(tree_1_P, test_1)
+pred_tree_1 <- exp(pred_tree_1)
+pred_tree_1
+
+# Absolute error mean, median, sd, max, min-------
+abs_err_tree_1 <- abs(pred_tree_1 - test_1$SalePrice)
+models_comp <- rbind(models_comp, "TreeReg_1" = c(
+  mean(abs_err_tree_1),
+  median(abs_err_tree_1),
+  sd(abs_err_tree_1),
+  IQR(abs_err_tree_1),
+  range(abs_err_tree_1)
+))
+
+View(models_comp)
+models_comp
+# Actual vs. Predicted
+plot(test_1$SalePrice, pred_tree_1,
+  main = "TreeReg_1",
+  xlab = "Actual", ylab = "Prediction"
+)
+abline(a = 0, b = 1, col = "red", lwd = 2)
+```
+
+#### **Model 1: Decision Tree with Data 2**
+
+```{r Model 2: Decision Tree Model Using All features}
+# Decision Tree
+
+# Decision Tree Model Using All features
+tree_2 <- rpart(
+  formula = log_SalePrice ~ . - SalePrice,
+  data = train_2,
+  control = list(
+    cp = 0.0001,
+    maxdepth = 3,
+    minbucket = 15
+  )
+)
+# Plot the tree
+prp(tree_2)
+
+# Prune the tree
+plotcp(tree_2)
+tree_2$cptable[which.min(tree_2$cptable[, "xerror"])]
+
+# Prune the tree
+tree_2_P <- prune.rpart(tree_2,
+  cp = tree_2$cptable[which.min(tree_2$cptable[, "xerror"])]
+)
+
+# Plot the tree
+prp(tree_2_P)
+
+# Model Testing
+
+# Prediction: tree_2
+pred_tree_2 <- predict(tree_2_P, test_2)
+pred_tree_2 <- exp(pred_tree_2)
+pred_tree_2
+
+# Absolute error mean, median, sd, max, min-------
+abs_err_tree_2 <- abs(pred_tree_2 - test_2$SalePrice)
+models_comp <- rbind(models_comp, "TreeReg_2" = c(
+  mean(abs_err_tree_2),
+  median(abs_err_tree_2),
+  sd(abs_err_tree_2),
+  IQR(abs_err_tree_2),
+  range(abs_err_tree_2)
+))
+
+View(models_comp)
+models_comp
+# Actual vs. Predicted
+plot(test_2$SalePrice, pred_tree_2,
+  main = "TreeReg_2",
+  xlab = "Actual", ylab = "Prediction"
+)
+abline(a = 0, b = 1, col = "red", lwd = 2)
+```
+
+#### **Model 1: Bagging with data_1**
+
+```{r Model 1: Bagging}
+# Bagging
+
+set.seed(1234)
+bagging_1 <- randomForest(log_SalePrice ~ . - SalePrice,
+  mtry = 58,
+  ntree = 1000,
+  data = train_1
+)
+
+bagging_1
+
+# Model Testing
+
+# Prediction: Bagging
+pred_bagging_1 <- predict(bagging_1, test_1)
+pred_bagging_1 <- exp(pred_bagging_1)
+pred_bagging_1
+
+# Absolute error mean, median, sd, max, min-------
+abs_err_bagging_1 <- abs(pred_bagging_1 - test_1$SalePrice)
+models_comp <- rbind(models_comp, "Bagging_1" = c(
+  mean(abs_err_bagging_1),
+  median(abs_err_bagging_1),
+  sd(abs_err_bagging_1),
+  IQR(abs_err_bagging_1),
+  range(abs_err_bagging_1)
+))
+
+View(models_comp)
+models_comp
+# Actual vs. Predicted
+plot(test_1$SalePrice, pred_bagging_1,
+  main = "Bagging_1",
+  # xlim = c(0, 2000), ylim = c(0, 2000),
+  xlab = "Actual", ylab = "Prediction"
+)
+abline(a = 0, b = 1, col = "red", lwd = 2)
+```
+
+#### **Model 2: Bagging with data_2**
+
+```{r Model 2: Bagging}
+# Bagging
+
+set.seed(1234)
+bagging_2 <- randomForest(log_SalePrice ~ . - SalePrice,
+  mtry = 58,
+  ntree = 1000,
+  data = train_2
+)
+
+bagging_2
+
+# Test the Model----------------------------------
+# Prediction: Bagging
+pred_bagging_2 <- predict(bagging_2, test_2)
+pred_bagging_2 <- exp(pred_bagging_2)
+pred_bagging_2
+
+# Absolute error mean, median, sd, max, min-------
+abs_err_bagging_2 <- abs(pred_bagging_2 - test_2$SalePrice)
+models_comp <- rbind(models_comp, "Bagging_2" = c(
+  mean(abs_err_bagging_2),
+  median(abs_err_bagging_2),
+  sd(abs_err_bagging_2),
+  IQR(abs_err_bagging_2),
+  range(abs_err_bagging_2)
+))
+
+View(models_comp)
+models_comp
+# Actual vs. Predicted
+plot(test_2$SalePrice, pred_bagging_2,
+  main = "Bagging_2",
+  # xlim = c(0, 2000), ylim = c(0, 2000),
+  xlab = "Actual", ylab = "Prediction"
+)
+abline(a = 0, b = 1, col = "red", lwd = 2)
+```
+
+
+#### **Memory Management:**
+
+```{r Release Memory Part 4_4}
+# Remove all unused variables 
+rm(list = setdiff(ls(), 
+                  c("mdf_data", "mdf_test", "train_1", "train_2",
+                    "test_1", "test_2", 
+                    "test_k_1", "test_k_2",
+                    "models_comp"
+                    )
+                  )
+   )
+
+# Clear plot devices to release memory
+dev.off()
+gc()
+```
+
+#### **Model 1: Random Forest with Data 1**
+
+```{r Model 1: Random Forest}
+# Random Forest
+
+set.seed(1234)
+
+# mtry	for regression = p/3  ---> 18
+rf_1 <- randomForest(log_SalePrice ~ . - SalePrice,
+  data = train_1,
+  mtry = 18, ntree = 2000,
+  nodesize = 7, importance = TRUE
+)
+
+rf_1
+
+importance(rf_1)
+varImpPlot(rf_1)
+
+# # Cross-Validation and Feature Selection
+## step = 0.9,
+## mtry default: floor(sqrt(p)), floor(p/3)
+# recursive: whether variable importance is (re-)assessed at each step of variable reduction
+
+#  remove "SalePrice"[53 ] & "log_SalePrice"[54]
+colnames(train_1[, c(53, 54)])
+
+set.seed(1234)
+#rf_cv_1 <- rfcv(train_1[, -c(53, 54)],
+#  train_1$log_SalePrice,
+#  cv.fold = 10,
+#  step = 0.9,
+#  mtry = function(p) max(1, floor(sqrt(p))),
+#  recursive = FALSE
+#)
+
+#class(rf_cv_1)
+#str(rf_cv_1)
+
+# Vector of number of variables used at each step
+#rf_cv_1$n.var
+
+# Corresponding vector of MSEs at each step
+#rf_cv_1$error.cv
+#which.min(rf_cv_1$error.cv)
+
+# select 22 variables based on Importance of Variables
+#sort(importance(rf_1, )[, 1])
+
+# Regression formula
+reg_formula_1 <- as.formula(log_SalePrice ~ 
+                              # Size of Property
+                              TotalSF + Total_Bathrooms + LotArea + TotalPorchSF +
+                              X1stFlrSF + BsmtFinSF1 + X2ndFlrSF + 
+                              # Year
+                              HouseAge +
+                              # Neighborhood & SaleType
+                              Neighborhood + MSSubClass + SaleCondition +
+                              # Conditon and Quality
+                              OverallCond + OverallQual + KitchenQual +
+                              ExterQual + FireplaceQu +
+                              # additional facilities
+                              GarageArea  + GarageCars +
+                              BsmtFinType1- SalePrice )
+
+
+reg_formula_1
+class(reg_formula_1)
+
+# Tuning Hyperparameters
+# Set random seed
+set.seed(1234)
+
+# Define a function to perform random forest training with different hyperparameters
+train_rf <- function(data, formula, mtry, ntree, nodesize) {
+# Train random forest model
+  model <- randomForest(formula, data = data, mtry = mtry, ntree = ntree, nodesize = nodesize, importance = TRUE)
+  
+  # Return the model and importance scores
+  return(list(model = model, importance = importance(model)))
+}
+
+# Define hyperparameter grid
+mtry_grid <- c(floor(sqrt(ncol(train_1))), floor(ncol(train_1)/3))
+ntree_grid <- c(500, 1000, 1500, 2000)
+
+# Initialize empty list to store results
+results <- list()
+
+# Loop through each combination of mtry and ntree
+for (i in 1:length(mtry_grid)) {
+  for (j in 1:length(ntree_grid)) {
+    # Current hyperparameter combination
+    current_mtry <- mtry_grid[i]
+    current_ntree <- ntree_grid[j]
+    
+    # Train model with current hyperparameters
+    model_result <- train_rf(train_1, reg_formula_1, current_mtry, current_ntree, nodesize = 7)
+    
+    # Store results in a list
+    results[[paste("mtry_", current_mtry, "_ntree_", current_ntree, sep = "")]] <- model_result
+  }
+}
+
+# Function to evaluate model performance (replace with your preferred metric)
+evaluate_model <- function(model) {
+  # Example: Calculate mean squared error (MSE) on test data
+  predictions <- predict(model$model, test_1)
+  Rmse <- sqrt(mean((predictions - test_1$SalePrice)^2))
+  return(Rmse)
+}
+
+# Evaluate each model based on chosen metric
+model_evaluations <- sapply(results, function(x) evaluate_model(x))
+
+# Find the best model based on minimum evaluation score
+best_model_index <- which.min(model_evaluations)
+best_model_name <- names(model_evaluations)[best_model_index]
+
+# Extract the best model and importance scores
+best_model <- results[[best_model_name]]$model
+best_importance <- results[[best_model_name]]$importance
+
+# Use the best model for prediction
+pred_rf_1 <- predict(best_model, test_1)
+pred_rf_1 <- exp(pred_rf_1)
+
+# Absolute error mean, median, sd, max, min-------
+abs_err_rf_1 <- abs(pred_rf_1 - test_1$SalePrice)
+models_comp <- rbind(models_comp, "RandomForest_1" = c(
+  mean(abs_err_rf_1),
+  median(abs_err_rf_1),
+  sd(abs_err_rf_1),
+  IQR(abs_err_rf_1),
+  range(abs_err_rf_1)
+))
+
+View(models_comp)
+models_comp
+
+# Actual vs. Predicted
+plot(test_1$SalePrice, pred_rf_1,
+  main = "RandomForest_1",
+  xlab = "Actual", ylab = "Prediction"
+)
+abline(a = 0, b = 1, col = "red", lwd = 2)
+```
+
+#### Test kaggle test data set
+
+```{r}
+# Use the best model for prediction
+pred_rf_k_1 <- predict(best_model, test_k_1)
+pred_rf_k_1 <- exp(pred_rf_k_1)
+
+sum(is.na(pred_rf_k_1))
+
+pred_rf_k_1 <- cbind("Id" = mdf_test$Id, "SalePrice" = pred_rf_k_1)
+
+write.csv(pred_rf_k_1, file = "results/pred_rf_k_1.csv", row.names = FALSE)
+
+#Save the results
+save(best_model, file = "results/RandomForest_1.R")
+```
+
+#### **Model 2: Random Forest with Data 2**
+
+```{r Model 2: Random Forest}
+set.seed(1234)
+# mtry
+# for regression = p/3  ---> 18
+rf_2 <- randomForest(log_SalePrice ~ . - SalePrice,
+  data = train_2,
+  mtry = 18, ntree = 1000,
+  nodesize = 7, importance = TRUE
+)
+
+rf_2
+
+importance(rf_2)
+varImpPlot(rf_2)
+
+# K-fold Cross-Validation for feature selection
+## remove "SalePrice"[59 ] & "log_SalePrice"[60]
+## step = 0.9,
+## mtry: default: floor(sqrt(p)), floor(p/3)
+## recursive: whether variable importance is (re-)assessed at each step of variable reduction
+
+colnames(train_2[, c(53, 54)])
+
+set.seed(1234)
+#rf_cv_2 <- rfcv(train_2[, -c(53, 54)],
+#  train_2$log_SalePrice,
+#  cv.fold = 10,
+#  step = 0.9,
+#  mtry = function(p) max(1, floor(sqrt(p))),
+#  recursive = FALSE
+#)
+
+#class(rf_cv_2)
+#str(rf_cv_2)
+
+# Vector of number of variables used at each step
+#rf_cv_2$n.var
+
+# Corresponding vector of MSEs at each step
+#rf_cv_2$error.cv
+#which.min(rf_cv_2$error.cv)
+
+# select 25 variables based on Importance of Variables
+#sort(importance(rf_2)[, 1])
+
+# Regression formula
+reg_formula_2 <- as.formula(log_SalePrice ~ 
+                              # Size of Property
+                              TotalSF + Total_Bathrooms + LotArea + TotalPorchSF +
+                              X1stFlrSF + BsmtFinSF1 + X2ndFlrSF + 
+                              # Year
+                              HouseAge +
+                              # Neighborhood & SaleType
+                              Neighborhood + MSSubClass + SaleCondition +
+                              # Conditon and Quality
+                              OverallCond + OverallQual + KitchenQual +
+                              ExterQual + FireplaceQu +
+                              # additional facilities
+                              GarageArea  + GarageCars +
+                              BsmtFinType1- SalePrice )
+reg_formula_2
+class(reg_formula_2)
+
+# Tuning Hyperparameters
+# Set random seed
+set.seed(1234)
+
+# Define hyperparameter grid
+mtry_grid <- c(floor(sqrt(ncol(train_2))), floor(ncol(train_2)/3))
+ntree_grid <- c(500, 1000, 1500, 2000)
+
+# Initialize empty list to store results
+results <- list()
+
+# Loop through each combination of mtry and ntree
+for (i in 1:length(mtry_grid)) {
+  for (j in 1:length(ntree_grid)) {
+    # Current hyperparameter combination
+    current_mtry <- mtry_grid[i]
+    current_ntree <- ntree_grid[j]
+    
+    # Train model with current hyperparameters
+    model_result <- train_rf(train_2, reg_formula_2, current_mtry, current_ntree, nodesize = 7)
+    
+    # Store results in a list
+    results[[paste("mtry_", current_mtry, "_ntree_", current_ntree, sep = "")]] <- model_result
+  }
+}
+
+# Function to evaluate model performance (replace with your preferred metric)
+evaluate_model <- function(model) {
+  # Example: Calculate mean squared error (MSE) on test data
+  predictions <- predict(model$model, test_2)
+  Rmse <- sqrt(mean((predictions - test_2$SalePrice)^2))
+  return(Rmse)
+}
+
+# Evaluate each model based on chosen metric
+model_evaluations <- sapply(results, function(x) evaluate_model(x))
+
+# Find the best model based on minimum evaluation score
+best_model_index <- which.min(model_evaluations)
+best_model_name <- names(model_evaluations)[best_model_index]
+
+# Extract the best model and importance scores
+best_model <- results[[best_model_name]]$model
+best_importance <- results[[best_model_name]]$importance
+# Test the Model----------------------------------
+# Prediction: rf_2
+pred_rf_2 <- predict(best_model, test_2)
+pred_rf_2 <- exp(pred_rf_2)
+pred_rf_2
+# Absolute error mean, median, sd, max, min-------
+abs_err_rf_2 <- abs(pred_rf_2 - test_2$SalePrice)
+models_comp <- rbind(models_comp, "RandomForest_2" = c(
+  mean(abs_err_rf_2),
+  median(abs_err_rf_2),
+  sd(abs_err_rf_2),
+  IQR(abs_err_rf_2),
+  range(abs_err_rf_2)
+))
+
+View(models_comp)
+models_comp
+# Actual vs. Predicted
+plot(test_2$SalePrice, pred_rf_2,
+  main = "RandomForest_2",
+  xlab = "Actual", ylab = "Prediction"
+)
+abline(a = 0, b = 1, col = "red", lwd = 2)
+```
+
+#### Test kaggle test data set
+
+```{r}
+# Use the best model for prediction
+pred_rf_k_2 <- predict(best_model, test_k_2)
+pred_rf_k_2 <- exp(pred_rf_k_2)
+
+sum(is.na(pred_rf_k_2))
+
+pred_rf_k_2 <- cbind("Id" = mdf_test$Id, "SalePrice" = pred_rf_k_2)
+write.csv(pred_rf_k_2, file = "results/pred_rf_k_2.Csv", row.names = FALSE)
+
+#Save the results
+save(best_model, file = "results/RandomForest_2.R")
+```
+
+#### **Memory Management**
+
+```{r}
+# Remove all unused variables 
+rm(list = setdiff(ls(), 
+                  c("mdf_data", "mdf_test", "train_1", "train_2",
+                    "test_1", "test_2", 
+                    "test_k_1", "test_k_2",
+                    "models_comp"
+                    )
+                  )
+   )
+
+# Clear plot devices to release memory
+dev.off()
+gc()
+```
+
+### **Boosting Methods in Regression**
+
+### **Model 1: Gradient Boosting (GB) Regression with Data 1**
+
+Gradient Boosting is a powerful ensemble method that builds models sequentially, each new model correcting errors made by the previous ones. We begin with two GBM models using different parameters and then proceed to hyperparameter tuning for optimal performance.
+
+#### **Initial GBM Model**
+
+```{r GB Regression}
+# Train GBM model with basic parameters
+set.seed(123)
+
+gbm_1 <- gbm(formula = log_SalePrice ~ . - SalePrice,
+             distribution = "gaussian", #Gaussian for regression problems
+             data = train_1,
+             n.trees = 4000, #The total number of trees to fit
+             interaction.depth = 1, #1: stump, the maximum depth of each tree 
+             shrinkage = 0.01, #Learning rate
+             cv.folds = 5,   #Number of cross-validation folds to perform
+             n.cores = NULL, #Use all cores by default
+             verbose = FALSE)  
+
+#Get MSE and compute RMSE
+min(gbm_1$cv.error)         #MSE
+sqrt(min(gbm_1$cv.error))   #RMSE
+
+#plot loss function as a result of n trees added to the ensemble
+gbm.perf(gbm_1, method = "cv")
+which(gbm_1$cv.error == min(gbm_1$cv.error))
+#returns the estimated optimal number of iterations
+```
+
+#### **Second GBM Model with Different Parameters**
+
+```{r}
+# Train GBM model with different parameters
+set.seed(123)
+gbm_2 <- gbm(formula = log_SalePrice ~ . - SalePrice,
+             distribution = "gaussian",
+             data = train_1,
+             n.trees = 2000,
+             interaction.depth = 3,
+             shrinkage = 0.1,
+             cv.folds = 5,
+             n.cores = NULL, #will use all cores by default
+             verbose = FALSE)  
+
+#get MSE and compute RMSE
+min(gbm_2$cv.error)
+sqrt(min(gbm_2$cv.error))
+
+#plot loss function as a result of n trees added to the ensemble
+gbm.perf(gbm_2, method = "cv")
+which(gbm_2$cv.error == min(gbm_2$cv.error))
+```
+
+#### **Hyperparameter Tuning**
+
+To find the optimal set of hyperparameters, we perform a grid search over a range of values for learning rate, interaction depth, minimum observations in nodes, and bag fraction.
+
+```{r}
+#Tuning
+#Create hyper-parameter grid
+par_grid <- expand.grid(shrinkage = c(0.01, 0.1, 0.3),  #learning rate
+                        interaction_depth = c(3, 5, 7), #the maximum depth of each tree
+                        n_minobsinnode = c(5, 10, 15),  #the minimum number of observations in the terminal nodes of the trees
+                        bag_fraction = c(0.5, 0.7, 0.9) #stochastic gradient :bag.fraction < 1
+)
+# view(par_grid)
+nrow(par_grid)
+
+#Grid search (train/validation approach)
+for(i in 1 : nrow(par_grid) ) {
+  set.seed(123)
+  #train model
+  gbm_tune <- gbm(formula = log_SalePrice ~ . - SalePrice,
+                  distribution = "gaussian",
+                  data = train_1,
+                  n.trees = 2000,
+                  interaction.depth = par_grid$interaction_depth[i],
+                  shrinkage = par_grid$shrinkage[i],
+                  n.minobsinnode = par_grid$n_minobsinnode[i],
+                  bag.fraction = par_grid$bag_fraction[i],
+                  train.fraction = 0.8,
+                  cv.folds = 0,
+                  n.cores = NULL, #will use all cores by default
+                  verbose = FALSE)  
+  #add min training error and trees to grid
+  par_grid$optimal_trees[i] <- which.min(gbm_tune$valid.error)
+  par_grid$min_RMSE[i]      <- sqrt(min(gbm_tune$valid.error))
+}
+
+head(par_grid)
+View(par_grid)
+
+#Modify hyper-parameter grid
+par_grid <- expand.grid(shrinkage = c(0.01, 0.05, .1),
+                        interaction_depth = c(3, 4, 5),
+                        n_minobsinnode = c(5, 7, 10),
+                        bag_fraction = c(0.7, 0.8, 0.9)  #stochastic gradient :bag.fraction < 1
+)
+
+nrow(par_grid)
+#Grid search (train/validation approach)
+for(i in 1 : nrow(par_grid)) {
+  set.seed(123)
+  #train model
+  gbm_tune <- gbm(formula = log_SalePrice ~ . - SalePrice,
+                  distribution = "gaussian",
+                  data = train_1,
+                  n.trees = 2000,
+                  interaction.depth = par_grid$interaction_depth[i],
+                  shrinkage = par_grid$shrinkage[i],
+                  n.minobsinnode = par_grid$n_minobsinnode[i],
+                  bag.fraction = par_grid$bag_fraction[i],
+                  train.fraction = 0.8,
+                  cv.folds = 0,
+                  n.cores = NULL, #will use all cores by default
+                  verbose = FALSE)  
+  #add min training error and trees to grid
+  par_grid$optimal_trees[i] <- which.min(gbm_tune$valid.error)
+  par_grid$min_RMSE[i]    <- sqrt(min(gbm_tune$valid.error))
+}
+
+save(par_grid, file = "results/par_grid_GBM.R") #save results
+load("results/par_grid_GBM.R")                  #load results
+
+head(par_grid)
+View(par_grid)
+
+#Final Model
+gbm_3 <- gbm(formula = log_SalePrice ~ . - SalePrice,
+             distribution = "gaussian",
+             data = train_1,
+             n.trees = 200,
+             interaction.depth = 3,
+             shrinkage = 0.1,
+             n.minobsinnode = 5,
+             bag.fraction = 0.8,
+             train.fraction = 1,
+             cv.folds = 10,
+             n.cores = NULL, #will use all cores by default
+)  
+
+summary(gbm_3)
+#Relative Importance: 
+#   The variables with the largest average decrease in MSE are considered most important.
+#Test the Model----------------------------------
+#Model 9: gbm_3
+#Prediction
+pred_gbm <- predict(gbm_3, n.trees = 200, newdata = test_1)
+pred_gbm <- exp(pred_gbm)
+pred_gbm
+#Absolute error mean, median, sd, max, min-------
+abs_err_gbm <- abs(pred_gbm - test_1$SalePrice)
+models_comp <- rbind(models_comp, "GBReg" = c(mean(abs_err_gbm),
+                                              median(abs_err_gbm),
+                                              sd(abs_err_gbm),
+                                              IQR(abs_err_gbm),
+                                              range(abs_err_gbm)))
+View(models_comp)
+#Actual vs. Predicted
+plot(test_1$SalePrice, pred_gbm, main = 'GBReg',
+     #xlim = c(0, 50000), ylim = c(0, 500000),
+     xlab = "Actual", ylab = "Prediction")
+abline(a = 0, b = 1, col = "red", lwd = 2)
+
+```
+
+### **Test Kaggle test set**
+
+```{r}
+pred_gbm_k_1 <- predict(gbm_3, n.trees = 200, newdata = test_k_1)
+pred_gbm_k_1 <- exp(pred_gbm_k_1)
+pred_gbm_k_1
+
+pred_gbm_k_1 <- cbind("Id" = mdf_test$Id, "SalePrice" = pred_gbm_k_1)
+write.csv(pred_gbm_k_1, file = "results/gbm_results.csv", row.names = FALSE)
+
+#Save the results
+save(gbm_3, file = "results/GBM_1.R")
+```
+
+### **Model 2: XGBoost Regression with Data 1**
+
+XGBoost is another popular boosting algorithm known for its performance and speed. Here we build and tune XGBoost models to achieve the best possible predictive performance.
+
+#### **Initial XGBoost Model**
+
+```{r XGBoost Regression}
+x <- model.matrix(log_SalePrice ~ . - SalePrice, 
+                  data = train_1)[, -1] #remove intercept
+y <- train_1$log_SalePrice
+
+set.seed(123)
+xgb_1 <- xgboost(data = x, 
+                 label = y,
+                 eta = 0.1,                       #learning rate
+                 lambda = 0,                      #regularization term
+                 max_depth = 8,                   #tree depth 
+                 nround = 500,                   #max number of boosting iterations
+                 subsample = 0.65,                #percent of training data to sample for each tree
+                 objective = "reg:squarederror",  #for regression models
+                 verbose = 0                      #silent
+) 
+
+#train RMSE
+xgb_1$evaluation_log
+#plot error vs number trees
+ggplot(xgb_1$evaluation_log) +
+  geom_line(aes(iter, train_rmse), color = "red") 
+
+#Tuning(Train/validation using xgboost)
+#Train and validation sets
+set.seed(1234)
+train_cases <- sample(1 : nrow(train_1), nrow(train_1) * 0.8)
+#Train data set
+train_xgboost <- train_1[train_cases, ]
+dim(train_xgboost)
+#Model Matrix
+xtrain <- model.matrix(log_SalePrice ~ . - SalePrice, 
+                       data = train_xgboost)[, -1] #remove intercept
+ytrain <- train_xgboost$log_SalePrice
+#Validation data set
+validation_xgboost  <- train_1[-train_cases,]
+dim(validation_xgboost)
+xvalidation <- model.matrix(log_SalePrice ~ . - SalePrice, 
+                            data = validation_xgboost)[, -1] #remove intercept
+yvalidation <- validation_xgboost$log_SalePrice
+
+#Create hyper-parameter grid
+par_grid <- expand.grid(eta = c(0.01, 0.05, 0.1, 0.3),
+                        lambda = c(0, 1, 2, 5),
+                        max_depth = c(1, 3, 5, 7),
+                        subsample = c(0.65, 0.8, 1), 
+                        colsample_bytree = c(0.8, 0.9, 1))
+# view(par_grid)
+dim(par_grid)
+
+#Grid search 
+for(i in 1 : nrow(par_grid) ) {
+  set.seed(123)
+  
+  #train model
+  xgb_tune <- xgboost(data =  xtrain,
+                      label = ytrain,
+                      eta = par_grid$eta[i],
+                      max_depth = par_grid$max_depth[i],
+                      subsample = par_grid$subsample[i],
+                      colsample_bytree = par_grid$colsample_bytree[i],
+                      nrounds = 1000,
+                      objective = "reg:squarederror",  #for regression models
+                      verbose = 0,                     #silent,
+                      early_stopping_rounds = 10       #stop if no improvement for 10
+                      #consecutive trees
+                      )
+  #prediction on validation data set
+  pred_xgb_validation <- predict(xgb_tune, xvalidation)
+  rmse <- sqrt(mean((yvalidation - pred_xgb_validation) ^ 2))
+  
+  #add validation error
+  par_grid$RMSE[i]  <- rmse
+}
+save(par_grid, file = "results/par_grid_xgboost.R") #save results
+load("results/par_grid_xgboost.R")                  #load results
+View(par_grid)
+
+#Final Model
+set.seed(123)
+xgb_2 <- xgboost(data = x, 
+                 label = y,
+                 eta = 0.1,     #learning rate
+                 max_depth = 1,  #tree depth 
+                 lambda = 0,
+                 nround = 1000,
+                 colsample_bytree = 0.9,
+                 subsample = 0.65,                #percent of training data to sample for each tree
+                 objective = "reg:squarederror",  #for regression models
+                 verbose = 0,                      #silent
+                 early_stopping_rounds = 10
+)
+
+#Test the Model----------------------------------
+#Model 10: xgb_2
+x_test   <- model.matrix(log_SalePrice ~ . - SalePrice, 
+                         data = test_1)[, -1]#remove intercept
+pred_xgb <- predict(xgb_2, x_test)
+pred_xgb <- exp(pred_xgb)
+pred_xgb
+#Absolute error mean, median, sd, max, min-------
+abs_err_xgb <- abs(pred_xgb - test_1$SalePrice)
+models_comp <- rbind(models_comp, "XGBReg" = c(mean(abs_err_xgb),
+                                               median(abs_err_xgb),
+                                               sd(abs_err_xgb),
+                                               IQR(abs_err_xgb),
+                                               range(abs_err_xgb)))
+View(models_comp)
+#Actual vs. Predicted
+plot(test_1$SalePrice, pred_xgb, main = 'XGBReg',
+     xlim = c(0, 450000), ylim = c(0, 450000),
+     xlab = "Actual", ylab = "Prediction")
+abline(a = 0, b = 1, col = "red", lwd = 2)
+```
+
+### **Test Kaggle test set**
+
+```{r}
+test_k_11 <- test_k_1
+test_k_11$log_SalePrice <- 0
+x_test_k_1   <- model.matrix(log_SalePrice ~ . - SalePrice, 
+                         data = test_k_11)[, -1]#remove intercept
+pred_xgb_k_1 <- predict(xgb_2, x_test_k_1)
+pred_xgb_k_1 <- exp(pred_xgb_k_1)
+pred_xgb_k_1
+
+pred_xgb_k_1 <- cbind("Id" = mdf_test$Id, "SalePrice" = pred_xgb_k_1)
+write.csv(pred_gbm_k_1, file = "gbm_results.csv", row.names = FALSE)
+
+#Save the results
+save(xgb_2, file = "results/XGB_1.R")
+```
+
+```{r}
+write.csv(models_comp, file = "results/models_com.csv", row.names = TRUE)
+```
+
+## Part 5: Evaluation
+
+#### 1: Compare Models
+
+We will compare the performance of the models across the two datasets based on the mean of absolute errors and the maximum of absolute errors.
+
+```{r Compare datasets}
+# Mean of (mean_of_AbsErrors) based on three data set:
+dim(models_comp)
+
+# data_1
+# mean_of_AbsErrors
+mean(models_comp[c(1, 4, 7, 10, 13, 16, 19), 1])
+# Max_of_AbsErrors
+mean(models_comp[c(1, 4, 7, 10, 13, 16, 19), 6])
+
+# data_2
+# mean_of_AbsErrors
+mean(models_comp[c(2, 5, 8, 11, 14, 17, 20), 1])
+# Max_of_AbsErrors
+mean(models_comp[c(2, 5, 8, 11, 14, 17, 20), 6])
+
+```
+
+#### Comparison Across Datasets
+
+Let's calculate the mean of the `Mean_of_AbsErrors` and `Max_of_AbsErrors` for models grouped by datasets.
+
+-   **Dataset 1:**
+
+    -   **Mean of `Mean_of_AbsErrors`:**\
+        `13,380.80`
+
+    -   **Mean of `Max_of_AbsErrors`:**\
+        `78,720.32`
+
+-   **Dataset 2:**
+
+    -   **Mean of `Mean_of_AbsErrors`:**\
+        `13,172.92`
+
+    -   **Mean of `Max_of_AbsErrors`:**\
+        `85,060.42`
+
+This comparison highlights the differences in performance across different datasets and models.
+
+#### 2: Select the Best Model
+
+We'll identify the model with the best performance based on the lowest `Mean_of_AbsErrors` and the lowest `Max_of_AbsErrors`.
+
+```{r Compare Models}
+# Minimum "Mean_of_AbsErrors"
+models_comp[which.min(models_comp$Mean_of_AbsErrors), ]
+
+# Minimum "Median_of_AbsErrors"
+models_comp[which.min(models_comp$Median_of_AbsErrors), ]
+
+# Minimum "SD_of_AbsErrors"
+models_comp[which.min(models_comp$SD_of_AbsErrors), ]
+
+# Minimum "Max_of_AbsErrors"
+models_comp[which.min(models_comp$Max_of_AbsErrors), ]
+
+# Select Model
+rownames(models_comp[
+  (models_comp$Mean_of_AbsErrors < mean(models_comp$Mean_of_AbsErrors)) &
+    (models_comp$Max_of_AbsErrors < mean(models_comp$Max_of_AbsErrors)),
+])
+
+rownames(models_comp[
+  (models_comp$Mean_of_AbsErrors < 14000) &
+    (models_comp$Max_of_AbsErrors < 80000),
+])
+```
+
+-   **Model with Minimum `Mean_of_AbsErrors`:**\
+    **RidgeReg_1** with `Mean_of_AbsErrors` of **12,441.03**
+
+-   **Model with Minimum `Median_of_AbsErrors`:**\
+    **RidgeReg_1** with `Median_of_AbsErrors` of **9,344.50**
+
+-   **Model with Minimum `SD_of_AbsErrors`:**\
+    **RidgeReg_1** with `SD_of_AbsErrors` of **11,606.96**
+
+-   **Model with Minimum `Max_of_AbsErrors`:**\
+    **LM_t-test_1** with `Max_of_AbsErrors` of **67,484.23**
+
+Based on these criteria, **RidgeReg_1** emerges as the most optimal model considering both the mean and median of absolute errors, as well as standard deviation, although **LM_t-test_1** had a lower maximum error.
+
+### 3. Test in Real-World Scenarios
+
+To further evaluate the model's real-world applicability, it should be tested across different scenarios:
+
+-   **Different neighborhoods**: Test how the model performs in various neighborhoods.
+
+-   **Price range segmentation**: Evaluate the model separately for homes priced above and below \$300,000.
+
+-   **Home conditions**: Test for homes in normal condition.
+
+-   **Generalization**: Record the generalization ability across different test scenarios.
+
+## Part 6: Deployment
+
+For deployment, consider these key points:
+
+-   **Accuracy**: Ensure that the data collection process is accurate and handled by experts.
+
+-   **Completeness**: Verify that the dataset is complete without missing information.
+
+-   **Sample Size**: Increase the sample size, especially for homes priced above \$300,000.
+
+-   **Base Price**: Adjust for inflation when predicting future home prices.
+
+-   **Continuous Improvement**: Regularly update the model based on real-world feedback to maintain accuracy and generalization.
+
+## Part 7: Achievement
+
+**Learning**:
+
+-   Feature and target engineering.
+
+-   Enhancing statistical knowledge.
+
+-   Applying various regression algorithms.
+
+-   Improving R programming skills.
+
+**Challenges**: The most challenging and time-consuming aspect was data understanding and preparation. Handling a large number of variables required extensive effort, which accounted for about 90% of the time spent on this project. The importance of living with your data before diving into modeling cannot be overstated, as this ensures a better understanding and preparation of the dataset, which is critical for building effective models.
+
+**Conclusion**: Through this project, significant progress was made in understanding and applying data science techniques, although further study and practice are required to fully master these skills. The insights gained will serve as a foundation for future projects and continued learning in this field.
