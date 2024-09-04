@@ -1,6 +1,6 @@
 # Home Price Prediction
 
-This project aims to predict house prices using various regression models. The dataset used for this analysis is sourced from [source].
+This project aims to predict house prices using various regression models. The dataset used for this analysis is sourced from [source](https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques).
 
 ## Project Structure
 
