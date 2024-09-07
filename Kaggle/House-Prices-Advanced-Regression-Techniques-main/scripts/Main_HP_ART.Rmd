@@ -1,7 +1,7 @@
 ---
-title: "House Prices - Advanced Regression Techniques"
+title: "House Prices Advanced Regression Techniques"
 author: "Amir"
-date: "`r Sys.Date()`"
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
 output:
   pdf_document: default
   html_document: default
@@ -630,11 +630,9 @@ dim(modified_test)
 dim(modified_train)
 ```
 
-
 ### **3.3.2 Outlier Handling**
 
-Outliers in `SalePrice` and other key features are identified . In general, for models like Random Forest and XGBoost, you do not necessarily need to remove outliers, as these algorithms are robust to outliers..
-### **3.3.3 Feature Engineering**
+Outliers in `SalePrice` and other key features are identified . In general, for models like Random Forest and XGBoost, you do not necessarily need to remove outliers, as these algorithms are robust to outliers.. \### **3.3.3 Feature Engineering**
 
 We further refine the dataset by creating new features based on domain knowledge.
 
@@ -670,7 +668,8 @@ modified_train <- select(modified_train, -TotalBsmtSF, -FullBath, -HalfBath,
 dim(modified_train)
 ```
 
-modify test set 
+modify test set
+
 ```{r Reprocess test set}
 # Creating some new features based on domain knowledge and previous analysis
 
@@ -695,13 +694,11 @@ modified_test <- select(modified_test, -TotalBsmtSF, -FullBath, -HalfBath,
 dim(modified_test)
 ```
 
-
 ### **3.4 Data Set Preparation for Modeling**
 
 #### Prepare data set for train , validation and test
 
-steps for creating Train and Validation set:
-Steps for creating data_2:
+steps for creating Train and Validation set: Steps for creating data_2:
 
 1- Filter out near-zero variance features .
 
@@ -1123,7 +1120,6 @@ plot(exp(test_1$SalePrice), pred_tree_1,
 )
 abline(a = 0, b = 1, col = "red", lwd = 2)
 ```
-
 
 #### **Model 1: Bagging with data_1**
 
@@ -1654,20 +1650,44 @@ write.csv(models_comp, file = "results/models_com.csv", row.names = TRUE)
 
 ## Part 5: Evaluation
 
-#### 1: Compare Models
+| Model              | Mean Absolute Error | Median Absolute Error | Standard Deviation of Errors | Interquartile Range of Errors | Minimum Error | Maximum Error |
+|--------------------|---------------------|-----------------------|------------------------------|-------------------------------|---------------|---------------|
+| **LM_t-test_1**    | 17,347.19           | 11,936.62             | 18,216.59                    | 16,864.89                     | 52.31         | 131,994.2     |
+| **PCR_1**          | 18,491.91           | 12,740.51             | 21,095.49                    | 17,684.74                     | 102.28        | 240,962.9     |
+| **TreeReg_1**      | 26,415.68           | 18,905.75             | 29,458.32                    | 25,420.33                     | 217.44        | 375,219.3     |
+| **Bagging_1**      | 16,318.08           | 10,219.00             | 20,481.67                    | 15,610.57                     | 2.81          | 250,846.9     |
+| **RandomForest_1** | 16,197.65           | 9,656.89              | 20,834.36                    | 15,706.32                     | 22.67         | 237,090.9     |
+| **GBReg**          | 15,710.21           | 10,338.76             | 20,264.58                    | 14,507.65                     | 77.26         | 278,356.7     |
+| **XGBReg**         | 15,516.20           | 10,527.83             | 19,353.30                    | 14,435.78                     | 92.63         | 254,804.7     |
 
-We will compare the performance of the models across the two datasets based on the mean of absolute errors and the maximum of absolute errors.
+### Conclusion for Selecting the Best Model
 
-**Mean of Absolute Errors:** Models with lower mean values (such as RandomForest_1 and Bagging_1) perform better on average.
+Based on the comparison of the models using various error metrics (Mean, Median, Standard Deviation, IQR, Min, and Max of Absolute Errors), we can draw the following insights:
 
-**Median of Absolute Errors**: Again, models like RandomForest_1 and Bagging_1 exhibit lower medians, indicating better central tendency in their error distribution.
+1.  **Mean Absolute Error (MAE)**:\
+    The lower the mean absolute error, the better the model is at predicting on average. The models with the lowest MAE are:
 
-**Standard Deviation of Absolute Errors:** Lower values (e.g., in RandomForest_1 and LM_t-test_1) suggest that these models have more consistent errors.
-    
-**IQR of Absolute Errors:** This is another variability measure, where RandomForest_1 and Bagging_1 show lower IQRs, suggesting that the bulk of their errors are concentrated within a narrow range.
+    -   **XGBReg** (15,516.20)
+    -   **GBReg** (15,710.21)\
+        These two models show the best average performance, with XGBReg slightly outperforming GBReg.
 
-**Minimum of Absolute Errors:** This gives the smallest absolute error. Lower minimums are favorable, but extreme cases (like very low minimums) may not reflect overall model performance.
+2.  **Median Absolute Error**:\
+    The median gives a sense of central tendency, especially in cases with skewed data. Again, XGBReg (10,527.83) and GBReg (10,338.76) show the best results, with very close medians.
 
-**Maximum of Absolute Errors:** Models with lower maximum absolute errors are generally preferred, as they show better handling of worst-case scenarios.
+3.  **Standard Deviation of Absolute Errors**:\
+    Standard deviation (SD) indicates the spread of errors. A lower SD implies that the model is more consistent. The model with the lowest SD is **XGBReg** (19,353.30), followed by **GBReg** (20,264.58). This suggests that XGBReg is slightly more consistent than GBReg.
 
-Based on this comparison, RandomForest_1 and Bagging_1 seem to perform consistently well across multiple metrics.
+4.  **Interquartile Range (IQR) of Absolute Errors**:\
+    The IQR helps to understand the range within which the middle 50% of errors lie. XGBReg (14,435.78) and GBReg (14,507.65) perform similarly, with XGBReg being marginally better.
+
+5.  **Minimum Absolute Error**:\
+    While not the most important metric, the minimum error gives a sense of how close the best predictions can be. Bagging_1 has the lowest minimum error, but this doesn’t necessarily mean it is the best model overall, as other error measures need to be considered.
+
+6.  **Maximum Absolute Error**:\
+    Maximum error shows how bad the worst-case predictions are. The models with lower maximum errors are better at avoiding large errors. Here, XGBReg (254,804.7) and GBReg (278,356.7) are better compared to other models.
+
+### Final Decision
+
+-   Based on the combined analysis of all error metrics, **XGBReg** emerges as the best-performing model. It has the lowest mean and median absolute errors, the smallest standard deviation (implying consistency), and a relatively lower maximum error.
+
+### Best Model: **XGBReg**
