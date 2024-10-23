@@ -1,0 +1,573 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "a9bff6b2",
+   "metadata": {
+    "_cell_guid": "b1076dfc-b9ad-4769-8c92-a6c4dae69d19",
+    "_uuid": "8f2839f25d086af736a60e9eeb907d3b93b6e0e5",
+    "execution": {
+     "iopub.execute_input": "2024-10-23T06:12:04.912101Z",
+     "iopub.status.busy": "2024-10-23T06:12:04.911667Z",
+     "iopub.status.idle": "2024-10-23T06:12:06.087081Z",
+     "shell.execute_reply": "2024-10-23T06:12:06.085705Z"
+    },
+    "papermill": {
+     "duration": 1.185312,
+     "end_time": "2024-10-23T06:12:06.089904",
+     "exception": false,
+     "start_time": "2024-10-23T06:12:04.904592",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "/kaggle/input/titanic/train.csv\n",
+      "/kaggle/input/titanic/test.csv\n",
+      "/kaggle/input/titanic/gender_submission.csv\n"
+     ]
+    }
+   ],
+   "source": [
+    "# This Python 3 environment comes with many helpful analytics libraries installed\n",
+    "# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python\n",
+    "# For example, here's several helpful packages to load\n",
+    "\n",
+    "import numpy as np # linear algebra\n",
+    "import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)\n",
+    "\n",
+    "# Input data files are available in the read-only \"../input/\" directory\n",
+    "# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory\n",
+    "\n",
+    "import os\n",
+    "for dirname, _, filenames in os.walk('/kaggle/input'):\n",
+    "    for filename in filenames:\n",
+    "        print(os.path.join(dirname, filename))\n",
+    "\n",
+    "# You can write up to 20GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using \"Save & Run All\" \n",
+    "# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "94a25eec",
+   "metadata": {
+    "papermill": {
+     "duration": 0.004562,
+     "end_time": "2024-10-23T06:12:06.099701",
+     "exception": false,
+     "start_time": "2024-10-23T06:12:06.095139",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "# Titanic machine learning insights from disaster"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "14ff3c95",
+   "metadata": {
+    "papermill": {
+     "duration": 0.004401,
+     "end_time": "2024-10-23T06:12:06.108919",
+     "exception": false,
+     "start_time": "2024-10-23T06:12:06.104518",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "## Step 1: Load and Explore Data"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "42ff7bd5",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2024-10-23T06:12:06.120860Z",
+     "iopub.status.busy": "2024-10-23T06:12:06.120210Z",
+     "iopub.status.idle": "2024-10-23T06:12:08.842000Z",
+     "shell.execute_reply": "2024-10-23T06:12:08.840606Z"
+    },
+    "papermill": {
+     "duration": 2.731029,
+     "end_time": "2024-10-23T06:12:08.844943",
+     "exception": false,
+     "start_time": "2024-10-23T06:12:06.113914",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Training Data Sample:\n",
+      "   PassengerId  Survived  Pclass  \\\n",
+      "0            1         0       3   \n",
+      "1            2         1       1   \n",
+      "2            3         1       3   \n",
+      "3            4         1       1   \n",
+      "4            5         0       3   \n",
+      "\n",
+      "                                                Name     Sex   Age  SibSp  \\\n",
+      "0                            Braund, Mr. Owen Harris    male  22.0      1   \n",
+      "1  Cumings, Mrs. John Bradley (Florence Briggs Th...  female  38.0      1   \n",
+      "2                             Heikkinen, Miss. Laina  female  26.0      0   \n",
+      "3       Futrelle, Mrs. Jacques Heath (Lily May Peel)  female  35.0      1   \n",
+      "4                           Allen, Mr. William Henry    male  35.0      0   \n",
+      "\n",
+      "   Parch            Ticket     Fare Cabin Embarked  \n",
+      "0      0         A/5 21171   7.2500   NaN        S  \n",
+      "1      0          PC 17599  71.2833   C85        C  \n",
+      "2      0  STON/O2. 3101282   7.9250   NaN        S  \n",
+      "3      0            113803  53.1000  C123        S  \n",
+      "4      0            373450   8.0500   NaN        S  \n",
+      "Test Data Shape: (418, 11)\n"
+     ]
+    }
+   ],
+   "source": [
+    "import numpy as np\n",
+    "import pandas as pd\n",
+    "from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score, StratifiedKFold\n",
+    "from sklearn.linear_model import LogisticRegression\n",
+    "from sklearn.ensemble import RandomForestClassifier\n",
+    "from xgboost import XGBClassifier\n",
+    "from sklearn.metrics import accuracy_score\n",
+    "\n",
+    "# Load the datasets\n",
+    "df_train = pd.read_csv(\"/kaggle/input/titanic/train.csv\")\n",
+    "df_test = pd.read_csv(\"/kaggle/input/titanic/test.csv\")\n",
+    "\n",
+    "# Print first few rows of the training data\n",
+    "print(\"Training Data Sample:\")\n",
+    "print(df_train.head())\n",
+    "\n",
+    "# Print shape of the test data\n",
+    "print(f\"Test Data Shape: {df_test.shape}\")\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "06941817",
+   "metadata": {
+    "papermill": {
+     "duration": 0.004722,
+     "end_time": "2024-10-23T06:12:08.854727",
+     "exception": false,
+     "start_time": "2024-10-23T06:12:08.850005",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "## Step 2: Data Preprocessing\n",
+    "\n",
+    "The goal is to handle missing values, engineer relevant features, and one-hot encode categorical variables. We'll make sure to preserve PassengerId from the test dataset."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "84316866",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2024-10-23T06:12:08.867188Z",
+     "iopub.status.busy": "2024-10-23T06:12:08.866723Z",
+     "iopub.status.idle": "2024-10-23T06:12:08.920996Z",
+     "shell.execute_reply": "2024-10-23T06:12:08.919448Z"
+    },
+    "papermill": {
+     "duration": 0.063815,
+     "end_time": "2024-10-23T06:12:08.923761",
+     "exception": false,
+     "start_time": "2024-10-23T06:12:08.859946",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Preprocessing Done!\n"
+     ]
+    }
+   ],
+   "source": [
+    "def preprocess_data(df_train, df_test):\n",
+    "    \"\"\"\n",
+    "    Preprocesses the Titanic dataset by handling missing values, one-hot encoding, and feature engineering.\n",
+    "    This function also preserves the PassengerId from the test dataset for final submission.\n",
+    "    \n",
+    "    Args:\n",
+    "    df_train: DataFrame, training dataset.\n",
+    "    df_test: DataFrame, test dataset.\n",
+    "    \n",
+    "    Returns:\n",
+    "    processed_train: DataFrame, preprocessed training dataset.\n",
+    "    processed_test: DataFrame, preprocessed test dataset with PassengerId preserved.\n",
+    "    \"\"\"\n",
+    "    # Preserve PassengerId for the test dataset\n",
+    "    passenger_ids = df_test['PassengerId']\n",
+    "    \n",
+    "    # Combine train and test datasets\n",
+    "    df_test['Survived'] = np.nan\n",
+    "    df_combined = pd.concat([df_train, df_test], axis=0)\n",
+    "    \n",
+    "    # Drop irrelevant columns\n",
+    "    df_combined.drop(['Name', 'Ticket'], axis=1, inplace=True)\n",
+    "    \n",
+    "    # Fill missing values\n",
+    "    df_combined['Age'] = df_combined['Age'].fillna(df_combined['Age'].mean())\n",
+    "    df_combined['Cabin'] = df_combined['Cabin'].fillna('X000')\n",
+    "    df_combined['Fare'] = df_combined['Fare'].fillna(df_combined['Fare'].mean())\n",
+    "    df_combined['Embarked'] = df_combined['Embarked'].fillna('X')\n",
+    "    \n",
+    "    # Extract cabin letter and cabin number\n",
+    "    df_combined['cabin_letter'] = df_combined['Cabin'].str.extract(r'([a-zA-Z]+)', expand=False)\n",
+    "    df_combined['cabin_number'] = df_combined['Cabin'].str.extract(r'(\\d+)', expand=False).fillna(0).astype(int)\n",
+    "    df_combined.drop('Cabin', axis=1, inplace=True)\n",
+    "    \n",
+    "    # One-hot encode categorical variables\n",
+    "    df_combined = pd.get_dummies(df_combined, columns=['Sex', 'Embarked', 'cabin_letter'], drop_first=True)\n",
+    "    \n",
+    "    # Interaction features\n",
+    "    df_combined['Pclass_bin_Fare'] = df_combined['Fare'] // df_combined['Pclass']\n",
+    "    df_combined['Pclass_bin_sex'] = df_combined['Pclass'] - df_combined['Sex_male']\n",
+    "    \n",
+    "    # Split combined data back into train and test sets\n",
+    "    processed_train = df_combined[df_combined['Survived'].notna()].copy()\n",
+    "    processed_test = df_combined[df_combined['Survived'].isna()].copy()\n",
+    "    \n",
+    "    # Drop 'Survived' from the test set\n",
+    "    processed_train['Survived'] = processed_train['Survived'].astype(int)\n",
+    "    processed_test.drop('Survived', axis=1, inplace=True)\n",
+    "    \n",
+    "    # Restore PassengerId in the test set\n",
+    "    processed_test['PassengerId'] = passenger_ids\n",
+    "    \n",
+    "    return processed_train, processed_test\n",
+    "\n",
+    "# Apply preprocessing\n",
+    "processed_train, processed_test = preprocess_data(df_train, df_test)\n",
+    "print(\"Preprocessing Done!\")\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "07364030",
+   "metadata": {
+    "papermill": {
+     "duration": 0.004809,
+     "end_time": "2024-10-23T06:12:08.933852",
+     "exception": false,
+     "start_time": "2024-10-23T06:12:08.929043",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "## Step 3: Train/Test Split\n",
+    "\n",
+    "We now split the training data into a training and validation set to evaluate the models."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "0fa15681",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2024-10-23T06:12:08.945630Z",
+     "iopub.status.busy": "2024-10-23T06:12:08.945194Z",
+     "iopub.status.idle": "2024-10-23T06:12:08.958781Z",
+     "shell.execute_reply": "2024-10-23T06:12:08.957423Z"
+    },
+    "papermill": {
+     "duration": 0.022452,
+     "end_time": "2024-10-23T06:12:08.961298",
+     "exception": false,
+     "start_time": "2024-10-23T06:12:08.938846",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Training set shape: (712, 20), Validation set shape: (179, 20)\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Split features and target from the training dataset\n",
+    "X = processed_train.drop(['Survived', 'PassengerId'], axis=1)\n",
+    "y = processed_train['Survived']\n",
+    "\n",
+    "# Split the data into training and validation sets\n",
+    "X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=28)\n",
+    "print(f\"Training set shape: {X_train.shape}, Validation set shape: {X_val.shape}\")\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "9a2f049e",
+   "metadata": {
+    "papermill": {
+     "duration": 0.004926,
+     "end_time": "2024-10-23T06:12:08.971522",
+     "exception": false,
+     "start_time": "2024-10-23T06:12:08.966596",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "## Step 4: Model Training and Tuning\n",
+    "\n",
+    "We'll train several models, tune XGBoost using GridSearchCV, and then evaluate their performances."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "f621ff73",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2024-10-23T06:12:08.984035Z",
+     "iopub.status.busy": "2024-10-23T06:12:08.983550Z",
+     "iopub.status.idle": "2024-10-23T06:14:29.786629Z",
+     "shell.execute_reply": "2024-10-23T06:14:29.785450Z"
+    },
+    "papermill": {
+     "duration": 140.812968,
+     "end_time": "2024-10-23T06:14:29.789688",
+     "exception": false,
+     "start_time": "2024-10-23T06:12:08.976720",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Logistic Regression Accuracy: 0.7821\n",
+      "Fitting 10 folds for each of 108 candidates, totalling 1080 fits\n",
+      "Best parameters for Random Forest: {'max_depth': 10, 'min_samples_leaf': 2, 'min_samples_split': 2, 'n_estimators': 100}\n",
+      "Best accuracy from GridSearch: 0.8245\n",
+      "Random Forest Accuracy after Tuning: 0.8547\n",
+      "Fitting 10 folds for each of 18 candidates, totalling 180 fits\n",
+      "Best parameters for XGBoost: {'learning_rate': 0.1, 'max_depth': 3, 'n_estimators': 50}\n",
+      "Best accuracy from GridSearch: 0.8329\n",
+      "XGBoost Accuracy after Tuning: 0.8156\n"
+     ]
+    }
+   ],
+   "source": [
+    "from sklearn.ensemble import RandomForestClassifier\n",
+    "from sklearn.model_selection import GridSearchCV\n",
+    "\n",
+    "# Logistic Regression\n",
+    "log_model = LogisticRegression(max_iter=1000, random_state=28)\n",
+    "log_model.fit(X_train, y_train)\n",
+    "log_pred = log_model.predict(X_val)\n",
+    "log_acc = accuracy_score(y_val, log_pred)\n",
+    "print(f\"Logistic Regression Accuracy: {log_acc:.4f}\")\n",
+    "\n",
+    "# Random Forest with tuning\n",
+    "def tune_random_forest(X_train, y_train):\n",
+    "    \"\"\"\n",
+    "    Perform GridSearchCV to tune Random Forest hyperparameters.\n",
+    "    \"\"\"\n",
+    "    param_grid = {\n",
+    "        'n_estimators': [50, 100, 200],\n",
+    "        'max_depth': [None, 10, 20, 30],\n",
+    "        'min_samples_split': [2, 5, 10],\n",
+    "        'min_samples_leaf': [1, 2, 4]\n",
+    "    }\n",
+    "\n",
+    "    rf = RandomForestClassifier(random_state=28)\n",
+    "    grid_search = GridSearchCV(rf, param_grid, cv=10, scoring='accuracy', n_jobs=-1, verbose=1)\n",
+    "    grid_search.fit(X_train, y_train)\n",
+    "\n",
+    "    print(f\"Best parameters for Random Forest: {grid_search.best_params_}\")\n",
+    "    print(f\"Best accuracy from GridSearch: {grid_search.best_score_:.4f}\")\n",
+    "    \n",
+    "    return grid_search.best_estimator_\n",
+    "\n",
+    "# Tune Random Forest\n",
+    "rf_model = tune_random_forest(X_train, y_train)\n",
+    "rf_pred = rf_model.predict(X_val)\n",
+    "rf_acc = accuracy_score(y_val, rf_pred)\n",
+    "print(f\"Random Forest Accuracy after Tuning: {rf_acc:.4f}\")\n",
+    "\n",
+    "# XGBoost with tuning\n",
+    "def tune_xgboost(X_train, y_train):\n",
+    "    \"\"\"\n",
+    "    Perform GridSearchCV to tune XGBoost hyperparameters.\n",
+    "    \"\"\"\n",
+    "    param_grid = {\n",
+    "        'learning_rate': [0.01, 0.1],\n",
+    "        'n_estimators': [50, 100, 200],\n",
+    "        'max_depth': [3, 5, 7]\n",
+    "    }\n",
+    "\n",
+    "    xgb = XGBClassifier(objective='binary:logistic', random_state=28, eval_metric='logloss')\n",
+    "    grid_search = GridSearchCV(xgb, param_grid, cv=10, scoring='accuracy', n_jobs=-1, verbose=1)\n",
+    "    grid_search.fit(X_train, y_train)\n",
+    "\n",
+    "    print(f\"Best parameters for XGBoost: {grid_search.best_params_}\")\n",
+    "    print(f\"Best accuracy from GridSearch: {grid_search.best_score_:.4f}\")\n",
+    "    \n",
+    "    return grid_search.best_estimator_\n",
+    "\n",
+    "# Tune XGBoost\n",
+    "xgb_model = tune_xgboost(X_train, y_train)\n",
+    "xgb_pred = xgb_model.predict(X_val)\n",
+    "xgb_acc = accuracy_score(y_val, xgb_pred)\n",
+    "print(f\"XGBoost Accuracy after Tuning: {xgb_acc:.4f}\")\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "e798c273",
+   "metadata": {
+    "papermill": {
+     "duration": 0.00512,
+     "end_time": "2024-10-23T06:14:29.800851",
+     "exception": false,
+     "start_time": "2024-10-23T06:14:29.795731",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "## Step 5: Make Final Predictions on the Test Set\n",
+    "\n",
+    "Use the best model (XGBoost or Random Forest based on the performance) to predict the test dataset."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "66c9b5e8",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2024-10-23T06:14:29.821066Z",
+     "iopub.status.busy": "2024-10-23T06:14:29.819688Z",
+     "iopub.status.idle": "2024-10-23T06:14:29.863225Z",
+     "shell.execute_reply": "2024-10-23T06:14:29.862182Z"
+    },
+    "papermill": {
+     "duration": 0.060485,
+     "end_time": "2024-10-23T06:14:29.869178",
+     "exception": false,
+     "start_time": "2024-10-23T06:14:29.808693",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Submission file saved as submission.csv\n"
+     ]
+    }
+   ],
+   "source": [
+    "def make_predictions_and_save_to_csv(model, processed_test, output_file='submission.csv'):\n",
+    "    \"\"\"\n",
+    "    Make predictions on the preprocessed test data and save the submission file as 'submission.csv'.\n",
+    "    \"\"\"\n",
+    "    # Preserve PassengerId\n",
+    "    passenger_ids = processed_test['PassengerId']\n",
+    "    \n",
+    "    # Drop PassengerId from features\n",
+    "    X_test = processed_test.drop(['PassengerId'], axis=1)\n",
+    "    \n",
+    "    # Make predictions\n",
+    "    predictions = model.predict(X_test)\n",
+    "    \n",
+    "    # Create a submission DataFrame\n",
+    "    submission = pd.DataFrame({\n",
+    "        'PassengerId': passenger_ids,\n",
+    "        'Survived': predictions\n",
+    "    })\n",
+    "    \n",
+    "    # Save the submission file\n",
+    "    submission.to_csv(output_file, index=False)\n",
+    "    print(f\"Submission file saved as {output_file}\")\n",
+    "\n",
+    "# Make predictions using the best model (use rf_model or xgb_model based on performance)\n",
+    "make_predictions_and_save_to_csv(rf_model, processed_test, output_file='submission.csv')  # Use Random Forest for final prediction\n"
+   ]
+  }
+ ],
+ "metadata": {
+  "kaggle": {
+   "accelerator": "none",
+   "dataSources": [
+    {
+     "databundleVersionId": 26502,
+     "sourceId": 3136,
+     "sourceType": "competition"
+    }
+   ],
+   "dockerImageVersionId": 30786,
+   "isGpuEnabled": false,
+   "isInternetEnabled": true,
+   "language": "python",
+   "sourceType": "notebook"
+  },
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.10.14"
+  },
+  "papermill": {
+   "default_parameters": {},
+   "duration": 150.953642,
+   "end_time": "2024-10-23T06:14:32.498724",
+   "environment_variables": {},
+   "exception": null,
+   "input_path": "__notebook__.ipynb",
+   "output_path": "__notebook__.ipynb",
+   "parameters": {},
+   "start_time": "2024-10-23T06:12:01.545082",
+   "version": "2.6.0"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
