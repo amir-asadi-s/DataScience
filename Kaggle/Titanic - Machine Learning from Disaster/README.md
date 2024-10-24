@@ -19,19 +19,19 @@ These insights informed the feature engineering and model training process.
 
 ### Key Visualizations:
 - **Survival Rate by Gender**:
-  ![Survival Rate by Gender]([link_to_image_1](https://github.com/amir-asadi-s/DataScience/blob/main/Kaggle/Titanic%20-%20Machine%20Learning%20from%20Disaster/__results___19_1.png))
+  ![Survival Rate by Gender]([link_to_image_1](https://github.com/amir-asadi-s/DataScience/blob/main/Kaggle/Titanic%20-%20Machine%20Learning%20from%20Disaster/__results___19_1.png)
 
 - **Survival Rate by Passenger Class**:
-  ![Survival Rate by Passenger Class]([link_to_image_2](https://github.com/amir-asadi-s/DataScience/blob/main/Kaggle/Titanic%20-%20Machine%20Learning%20from%20Disaster/__results___19_2.png))
+  ![Survival Rate by Passenger Class]([link_to_image_2](https://github.com/amir-asadi-s/DataScience/blob/main/Kaggle/Titanic%20-%20Machine%20Learning%20from%20Disaster/__results___19_2.png)
 
 - **Age Distribution of Survivors and Non-Survivors**:
-  ![Age Distribution of Survivors and Non-Survivors]([link_to_image_3](https://github.com/amir-asadi-s/DataScience/blob/main/Kaggle/Titanic%20-%20Machine%20Learning%20from%20Disaster/__results___19_3.png))
+  ![Age Distribution of Survivors and Non-Survivors]([link_to_image_3](https://github.com/amir-asadi-s/DataScience/blob/main/Kaggle/Titanic%20-%20Machine%20Learning%20from%20Disaster/__results___19_3.png)
 
 - **Survival Rate by Embarkation Point**:
   ![Survival Rate by Embarkation Point](https://github.com/amir-asadi-s/DataScience/blob/main/Kaggle/Titanic%20-%20Machine%20Learning%20from%20Disaster/__results___19_4.png)
 
 - **Feature Importance (Random Forest)**:
-  ![Feature Importance]([link_to_image_6](https://github.com/amir-asadi-s/DataScience/blob/main/Kaggle/Titanic%20-%20Machine%20Learning%20from%20Disaster/__results___19_6.png))
+  ![Feature Importance]([link_to_image_6](https://github.com/amir-asadi-s/DataScience/blob/main/Kaggle/Titanic%20-%20Machine%20Learning%20from%20Disaster/__results___19_6.png)
 
 ## Results
 
