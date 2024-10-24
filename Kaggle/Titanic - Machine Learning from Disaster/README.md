@@ -22,7 +22,7 @@ These insights informed the feature engineering and model training process.
   ![Survival Rate by Gender](https://github.com/amir-asadi-s/DataScience/blob/main/Kaggle/Titanic%20-%20Machine%20Learning%20from%20Disaster/__results___19_1.png)
 
 - **Survival Rate by Passenger Class**:
-  ![Survival Rate by Passenger Class]([https://github.com/amir-asadi-s/DataScience/blob/main/Kaggle/Titanic%20-%20Machine%20Learning%20from%20Disaster/__results___19_2.png)
+  ![Survival Rate by Passenger Class](https://github.com/amir-asadi-s/DataScience/blob/main/Kaggle/Titanic%20-%20Machine%20Learning%20from%20Disaster/__results___19_2.png)
 
 - **Age Distribution of Survivors and Non-Survivors**:
   ![Age Distribution of Survivors and Non-Survivors](https://github.com/amir-asadi-s/DataScience/blob/main/Kaggle/Titanic%20-%20Machine%20Learning%20from%20Disaster/__results___19_3.png)
