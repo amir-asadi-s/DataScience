@@ -19,10 +19,10 @@ These insights guided the feature engineering and model training process.
 
 ### Key Visualizations:
 - **Survival Rate by Gender**:
-  ![Survival Rate by Gender](https://path-to-your-plot.png)
+  ![Survival Rate by Gender](https://github.com/amir-asadi-s/DataScience/blob/main/Kaggle/Titanic%20-%20Machine%20Learning%20from%20Disaster/__results___19_1.png)
 
 - **Feature Importance** (Random Forest):
-  ![Feature Importance](https://path-to-your-plot.png)
+  ![Feature Importance](https://github.com/amir-asadi-s/DataScience/blob/main/Kaggle/Titanic%20-%20Machine%20Learning%20from%20Disaster/__results___19_6.png)
 
 ## Results
 
